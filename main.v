@@ -25,7 +25,7 @@ const (
 
 // ===== structs ======
 
-pub struct Request {
+struct Request {
 		method string
 		path string
 		query string
@@ -81,21 +81,26 @@ fn (res Response) status_msg() string {
 	return msg
 }
 
+struct Handler {
+	pub:
+		func fn (req Request) Response
+}
+
 
 pub struct App {
 		name string = 'valval_app'
 	mut:
-		router map[string]fn(req Request) Response
+		router map[string]Handler
 }
 
 pub fn (app mut App) register(path string, func fn(req Request) Response) {
-	app.router[path] = func
+	app.router[path] = Handler(func)
 }
 
 pub fn (app App) handle(method string, path string, query string, body string, headers map[string]string) Response {
-	mut func := default_route_func
+	mut func := default_handler_func
 	if (path in app.router) {
-		func = app.router[path]
+		func = app.router[path].func
 	}
 	req := Request{
 		method: method
@@ -116,22 +121,6 @@ pub struct Server {
 	mut:
 		app App
 }
-
-// =================================
-// POST /search HTTP/1.1  
-// Accept: image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, application/vnd.ms-excel, application/vnd.ms-powerpoint, 
-// application/msword, application/x-silverlight, application/x-shockwave-flash, */*  
-// Referer: http://www.google.cn/  
-// Accept-Language: zh-cn  
-// Accept-Encoding: gzip, deflate  
-// User-Agent: Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 2.0.50727; TheWorld)  
-// Host: www.google.cn 
-// Connection: Keep-Alive  
-// Cookie: PREF=ID=80a06da87be9ae3c:U=f7167333e2c3b714:NW=1:TM=1261551909:LM=1261551917:S=ybYcq2wpfefs4V9g; 
-// NID=31=ojj8d-IygaEtSxLgaJmqSjVhCspkviJrB6omjamNrSm8lZhKy_yMfO2M4QMRKcH1g0iQv9u-2hfBW7bUFwVh7pGaRUb0RnHcJU37y-
-// FxlRugatx63JLv7CWMD6UB_O_r  
-
-// hl=zh-CN&source=hp&q=domety
 
 pub fn (server Server) run() {
     println('Running Valval app on http://$server.address:$server.port ...')
@@ -184,31 +173,11 @@ pub fn (server Server) run() {
 		println('-----------')
     }
 }
-// HTTP/1.1 200 OK
-// Date: Mon, 23 May 2005 22:38:34 GMT
-// Content-Type: text/html; charset=UTF-8
-// Content-Encoding: UTF-8
-// Content-Length: 138
-// Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT
-// Server: Apache/1.3.3.7 (Unix) (Red-Hat/Linux)
-// ETag: "3f80f-1b6-3e1cb03b"
-// Accept-Ranges: bytes
-// Connection: close
-
-// <html>
-// <head>
-//   <title>An Example Page</title>
-// </head>
-// <body>
-//   Hello World, this is a very simple HTML document.
-// </body>
-// </html>
-// =================================
 
 
 // ===== functions ======
 
-fn default_route_func(req Request) Response {
+fn default_handler_func(req Request) Response {
 	res := Response{
 		status: 404
 		body: '$req.path not found!'
@@ -233,3 +202,42 @@ fn split2(s string, flag string) (string, string) {
 fn main() {
 	println('valval demo')
 }
+
+// =================================
+// POST /search HTTP/1.1  
+// Accept: image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, application/vnd.ms-excel, application/vnd.ms-powerpoint, 
+// application/msword, application/x-silverlight, application/x-shockwave-flash, */*  
+// Referer: http://www.google.cn/  
+// Accept-Language: zh-cn  
+// Accept-Encoding: gzip, deflate  
+// User-Agent: Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 2.0.50727; TheWorld)  
+// Host: www.google.cn 
+// Connection: Keep-Alive  
+// Cookie: PREF=ID=80a06da87be9ae3c:U=f7167333e2c3b714:NW=1:TM=1261551909:LM=1261551917:S=ybYcq2wpfefs4V9g; 
+// NID=31=ojj8d-IygaEtSxLgaJmqSjVhCspkviJrB6omjamNrSm8lZhKy_yMfO2M4QMRKcH1g0iQv9u-2hfBW7bUFwVh7pGaRUb0RnHcJU37y-
+// FxlRugatx63JLv7CWMD6UB_O_r  
+// 
+// hl=zh-CN&source=hp&q=domety
+// 
+// =================================
+// 
+// HTTP/1.1 200 OK
+// Date: Mon, 23 May 2005 22:38:34 GMT
+// Content-Type: text/html; charset=UTF-8
+// Content-Encoding: UTF-8
+// Content-Length: 138
+// Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT
+// Server: Apache/1.3.3.7 (Unix) (Red-Hat/Linux)
+// ETag: "3f80f-1b6-3e1cb03b"
+// Accept-Ranges: bytes
+// Connection: close
+
+// <html>
+// <head>
+//   <title>An Example Page</title>
+// </head>
+// <body>
+//   Hello World, this is a very simple HTML document.
+// </body>
+// </html>
+// =================================
