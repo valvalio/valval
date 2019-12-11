@@ -94,7 +94,7 @@ pub struct App {
 }
 
 pub fn (app mut App) register(path string, func fn(req Request) Response) {
-	app.router[path] = Handler(func)
+	app.router[path] = Handler{func}
 }
 
 pub fn (app App) handle(method string, path string, query string, body string, headers map[string]string) Response {
@@ -125,11 +125,12 @@ pub struct Server {
 pub fn (server Server) run() {
     println('Running Valval app on http://$server.address:$server.port ...')
     listener := net.listen(server.port) or { panic('failed to listen') }
-	println(listener)
     for {
 		conn := listener.accept() or { panic('accept failed') }
-		println(conn)
-		mut first_line := conn.read_line()
+		lines := read_http_request_lines(conn)
+		println(lines)
+		// mut first_line := conn.read_line()
+		mut first_line := lines[0]
 		first_line = rnstrip(first_line)
 		println(first_line)
 		items := first_line.split(' ')
@@ -138,25 +139,36 @@ pub fn (server Server) run() {
 			println('invalid data for http')
 			conn.write(HTTP_500) or {}
 			conn.close() or {}
+			println('continue')
 			continue
 		}
 		method := items[0]
 		url := items[1]
 		path := url.all_before('?')
-		query := url.all_after('?')
+		mut query := ''
+		// if url contains '?'
+		if url.split('?').len > 1 {
+			query = url.all_after('?')
+		}
 		println('$method, $url, $path, $query')
 		mut headers := map[string]string
-		for {
-			mut header_line := conn.read_line()
-			header_line = rnstrip(header_line)
-			if header_line == '' {
-				break
+		mut body := ''
+		mut flag := true
+		for line in lines[1..] {
+			// mut line := conn.read_line()
+			tline := rnstrip(line)
+			if tline == '' {
+				flag = false
 			}
-			header_name, header_value := split2(header_line, ':')
-			headers[header_name] = header_value
+			if flag {
+				header_name, header_value := split2(tline, ':')
+				headers[header_name] = header_value
+			} else {
+				body += tline + '\r\n'
+			}
 		}
+		body = body.trim('\r\n')
 		println(headers)
-		body := conn.read_line() // todo read all remain
 		println(body)
 		
 		res := server.app.handle(method, path, query, body, headers)
@@ -165,12 +177,14 @@ pub fn (server Server) run() {
 		result += 'Content-Type: $res.content_type\r\n'
 		result += '${res.header_text()}\r\n\r\n'
 		result += '$res.body'
+		println(result)
+
         conn.write(result) or { 
 			conn.write(HTTP_500) or {}
 		}
 
 		conn.close() or {}
-		println('-----------')
+		println('--------------------')
     }
 }
 
@@ -187,7 +201,8 @@ fn default_handler_func(req Request) Response {
 
 fn rnstrip(s string) string {
 	// rnstrip('abc\r\ndef') => 'abc'
-	return s.all_before('\r').all_before('\n')
+	// return s.all_before('\r').all_before('\n')
+	return s.trim_right('\r\n')
 }
 
 
@@ -201,6 +216,12 @@ fn split2(s string, flag string) (string, string) {
 
 fn main() {
 	println('valval demo')
+	app := App{}
+	server := Server{
+		port: 6789
+		app: app
+	}
+	server.run()
 }
 
 // =================================
@@ -241,3 +262,54 @@ fn main() {
 // </body>
 // </html>
 // =================================
+
+
+
+fn read_http_request_lines(conn &net.Socket) []string {
+	mut lines := []string
+	mut buf := [1024]byte // where C.recv will store the network data
+
+	for {
+		mut res := '' // The buffered line, including the ending \n.
+		mut line := '' // The current line segment. Can be a partial without \n in it.
+		for {
+			n := int(C.recv(conn.sockfd, buf, 1024-1, net.MSG_PEEK))
+			//println('>> recv: ${n:4d} bytes .')
+			if n == -1 { return lines }
+			if n == 0 {	return lines }
+			buf[n] = `\0`
+			mut eol_idx := -1
+			for i := 0; i < n; i++ {
+				if int(buf[i]) == 10 {
+					eol_idx = i
+					// Ensure that tos_clone(buf) later,
+					// will return *only* the first line (including \n),
+					// and ignore the rest
+					buf[i+1] = `\0`
+					break
+				}
+			}
+			line = tos_clone(buf)
+			if eol_idx > 0 {
+				// At this point, we are sure that recv returned valid data,
+				// that contains *at least* one line.
+				// Ensure that the block till the first \n (including it)
+				// is removed from the socket's receive queue, so that it does
+				// not get read again.
+				C.recv(conn.sockfd, buf, eol_idx+1, 0)
+				res += line
+				break
+			}
+			// recv returned a buffer without \n in it .
+			C.recv(conn.sockfd, buf, n, 0)
+			res += line
+			break
+		}
+		trimmed_line := res.trim_right('\r\n')
+		if trimmed_line.len == 0 { break }
+		lines << trimmed_line
+	}
+
+	return lines
+}
+
