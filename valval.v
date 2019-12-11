@@ -1,5 +1,5 @@
 
-// module valval
+module valval
 
 import (
 	net
@@ -21,7 +21,6 @@ const (
 		'.svg': 'image/svg+xml',
 		'.xml': 'text/xml; charset=utf-8'
 	}
-	BUFFER_SIZE = 1024
 )
 
 // ===== structs ======
@@ -118,7 +117,7 @@ pub fn (app App) handle(method string, path string, query string, body string, h
 pub struct Server {
 		name string = 'valval server'
 		address string = '0.0.0.0'
-		port int = 1208
+		port int = 8012
 	mut:
 		app App
 }
@@ -128,9 +127,17 @@ pub fn (server Server) run() {
     listener := net.listen(server.port) or { panic('failed to listen') }
     for {
 		conn := listener.accept() or { panic('accept failed') }
-		content := readall(conn)
-		println(content)
-		lines := content.split_into_lines()
+		println('------------')
+		println(conn)
+		message := readall(conn)
+		println(message)
+		lines := message.split_into_lines()
+		if lines.len < 2 {
+			println('invalid message for http')
+			conn.write(HTTP_500) or {}
+			conn.close() or {}
+			continue
+		}
 		first_line := strip(lines[0])
 		println(first_line)
 		items := first_line.split(' ')
@@ -139,7 +146,6 @@ pub fn (server Server) run() {
 			println('invalid data for http')
 			conn.write(HTTP_500) or {}
 			conn.close() or {}
-			println('continue')
 			continue
 		}
 		method := items[0]
@@ -163,7 +169,7 @@ pub fn (server Server) run() {
 				header_name, header_value := split2(sline, ':')
 				headers[header_name] = header_value
 			} else {
-				body += line + '\r\n'
+				body += sline + '\r\n'
 			}
 		}
 		body = strip(body)
@@ -192,17 +198,8 @@ pub fn (server Server) run() {
 
 // ===== functions ======
 
-fn default_handler_func(req Request) Response {
-	res := Response{
-		status: 404
-		body: '$req.path not found!'
-	}
-	return res
-}
-
 fn strip(s string) string {
-	// strip('abc\r\ndef') => 'abc'
-	// return s.all_before('\r').all_before('\n')
+	// strip('\nabc\r\n') => 'abc'
 	return s.trim('\r\n')
 }
 
@@ -213,34 +210,38 @@ fn split2(s string, flag string) (string, string) {
 	return items[0], items[1..].join(flag)
 }
 
+fn default_handler_func(req Request) Response {
+	res := Response{
+		status: 404
+		body: '$req.path not found!'
+	}
+	return res
+}
+
 fn readall(conn net.Socket) string {
-	mut content := ''
+	mut message := ''
 	for {
-		buf := [BUFFER_SIZE]byte
-		n := int(C.recv(conn.sockfd, buf, BUFFER_SIZE, 2))
-		bs, m := conn.recv(BUFFER_SIZE-1)
+		buf := [1024]byte
+		println('recv..')
+		n := C.recv(conn.sockfd, buf, 1024, 2)
+		println('n: $n')
+		if n == 0 {
+			break
+		}
+		bs, m := conn.recv(1024 - 1)
+		println('n: $m')
 		ss := tos_clone(bs)
-		content += ss
+		message += ss
 		if n == m {
 			break
 		}
 	}
-	return content
+	return message
 }
 
-// ==============================
 
-fn main() {
-	println('valval demo')
-	app := App{}
-	server := Server{
-		port: 6789
-		app: app
-	}
-	server.run()
-}
 
-// =================================
+// ========= Request Message Example =========
 // POST /search HTTP/1.1  
 // Accept: image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, application/vnd.ms-excel, application/vnd.ms-powerpoint, 
 // application/msword, application/x-silverlight, application/x-shockwave-flash, */*  
@@ -256,7 +257,8 @@ fn main() {
 // 
 // hl=zh-CN&source=hp&q=domety
 // 
-// =================================
+// 
+// ======== Respose Message Example ==========
 // 
 // HTTP/1.1 200 OK
 // Date: Mon, 23 May 2005 22:38:34 GMT
@@ -277,6 +279,6 @@ fn main() {
 //   Hello World, this is a very simple HTML document.
 // </body>
 // </html>
-// =================================
+// ============================================
 
 

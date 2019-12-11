@@ -6,4 +6,5 @@
 bin/
 
 
+*.out
 main
