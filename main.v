@@ -8,7 +8,7 @@ import (
 const (
 	HTTP_404 = 'HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\n404 Not Found'
 	HTTP_500 = 'HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\n500 Internal Server Error'
-	mime_types = {
+	MINE_MAP = {
 		'.css': 'text/css; charset=utf-8',
 		'.gif': 'image/gif',
 		'.htm': 'text/html; charset=utf-8',
@@ -21,6 +21,7 @@ const (
 		'.svg': 'image/svg+xml',
 		'.xml': 'text/xml; charset=utf-8'
 	}
+	BUFFER_SIZE = 1024
 )
 
 // ===== structs ======
@@ -127,11 +128,10 @@ pub fn (server Server) run() {
     listener := net.listen(server.port) or { panic('failed to listen') }
     for {
 		conn := listener.accept() or { panic('accept failed') }
-		lines := read_http_request_lines(conn)
-		println(lines)
-		// mut first_line := conn.read_line()
-		mut first_line := lines[0]
-		first_line = rnstrip(first_line)
+		content := readall(conn)
+		println(content)
+		lines := content.split_into_lines()
+		first_line := strip(lines[0])
 		println(first_line)
 		items := first_line.split(' ')
 		println(items)
@@ -146,8 +146,8 @@ pub fn (server Server) run() {
 		url := items[1]
 		path := url.all_before('?')
 		mut query := ''
-		// if url contains '?'
 		if url.split('?').len > 1 {
+			// if url contains '?'
 			query = url.all_after('?')
 		}
 		println('$method, $url, $path, $query')
@@ -155,27 +155,28 @@ pub fn (server Server) run() {
 		mut body := ''
 		mut flag := true
 		for line in lines[1..] {
-			// mut line := conn.read_line()
-			tline := rnstrip(line)
-			if tline == '' {
+			sline := strip(line)
+			if sline == '' {
 				flag = false
 			}
 			if flag {
-				header_name, header_value := split2(tline, ':')
+				header_name, header_value := split2(sline, ':')
 				headers[header_name] = header_value
 			} else {
-				body += tline + '\r\n'
+				body += line + '\r\n'
 			}
 		}
-		body = body.trim('\r\n')
+		body = strip(body)
 		println(headers)
 		println(body)
+		println('--------')
 		
 		res := server.app.handle(method, path, query, body, headers)
 
 		mut result := 'HTTP/1.1 $res.status ${res.status_msg()}\r\n'
 		result += 'Content-Type: $res.content_type\r\n'
-		result += '${res.header_text()}\r\n\r\n'
+		result += '${res.header_text()}'
+		result += '\r\n'
 		result += '$res.body'
 		println(result)
 
@@ -199,10 +200,10 @@ fn default_handler_func(req Request) Response {
 	return res
 }
 
-fn rnstrip(s string) string {
-	// rnstrip('abc\r\ndef') => 'abc'
+fn strip(s string) string {
+	// strip('abc\r\ndef') => 'abc'
 	// return s.all_before('\r').all_before('\n')
-	return s.trim_right('\r\n')
+	return s.trim('\r\n')
 }
 
 
@@ -210,6 +211,21 @@ fn split2(s string, flag string) (string, string) {
 	// split2('abc:def:xyz', ':') => 'abc', 'def:xyz'
 	items := s.split(flag)
 	return items[0], items[1..].join(flag)
+}
+
+fn readall(conn net.Socket) string {
+	mut content := ''
+	for {
+		buf := [BUFFER_SIZE]byte
+		n := int(C.recv(conn.sockfd, buf, BUFFER_SIZE, 2))
+		bs, m := conn.recv(BUFFER_SIZE-1)
+		ss := tos_clone(bs)
+		content += ss
+		if n == m {
+			break
+		}
+	}
+	return content
 }
 
 // ==============================
@@ -263,53 +279,4 @@ fn main() {
 // </html>
 // =================================
 
-
-
-fn read_http_request_lines(conn &net.Socket) []string {
-	mut lines := []string
-	mut buf := [1024]byte // where C.recv will store the network data
-
-	for {
-		mut res := '' // The buffered line, including the ending \n.
-		mut line := '' // The current line segment. Can be a partial without \n in it.
-		for {
-			n := int(C.recv(conn.sockfd, buf, 1024-1, net.MSG_PEEK))
-			//println('>> recv: ${n:4d} bytes .')
-			if n == -1 { return lines }
-			if n == 0 {	return lines }
-			buf[n] = `\0`
-			mut eol_idx := -1
-			for i := 0; i < n; i++ {
-				if int(buf[i]) == 10 {
-					eol_idx = i
-					// Ensure that tos_clone(buf) later,
-					// will return *only* the first line (including \n),
-					// and ignore the rest
-					buf[i+1] = `\0`
-					break
-				}
-			}
-			line = tos_clone(buf)
-			if eol_idx > 0 {
-				// At this point, we are sure that recv returned valid data,
-				// that contains *at least* one line.
-				// Ensure that the block till the first \n (including it)
-				// is removed from the socket's receive queue, so that it does
-				// not get read again.
-				C.recv(conn.sockfd, buf, eol_idx+1, 0)
-				res += line
-				break
-			}
-			// recv returned a buffer without \n in it .
-			C.recv(conn.sockfd, buf, n, 0)
-			res += line
-			break
-		}
-		trimmed_line := res.trim_right('\r\n')
-		if trimmed_line.len == 0 { break }
-		lines << trimmed_line
-	}
-
-	return lines
-}
 
