@@ -3,10 +3,13 @@ module valval
 
 import (
 	net
+	net.urllib
+	json
 )
 
 const (
 	HTTP_404 = 'HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\n404 Not Found'
+	HTTP_413 = 'HTTP/1.1 413 Request Entity Too Large\r\nContent-Type: text/plain\r\n\r\n413 Request Entity Too Large'
 	HTTP_500 = 'HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\n500 Internal Server Error'
 	MINE_MAP = {
 		'.css': 'text/css; charset=utf-8',
@@ -21,16 +24,29 @@ const (
 		'.svg': 'image/svg+xml',
 		'.xml': 'text/xml; charset=utf-8'
 	}
+	POST_BODY_LIMIT = 1024 * 1024 * 20  // 20MB
 )
 
 // ===== structs ======
 
-struct Request {
+pub struct Request {
+	pub:
 		method string
 		path string
-		query string
+		query map[string]string
+		form map[string]string
 		body string
 		headers map[string]string
+}
+
+pub fn (req Request) get(key string, default_value string) string {
+	if key in req.form {
+		return req.form[key]
+	}
+	if key in req.query {
+		return req.query[key]
+	}
+	return default_value
 }
 
 
@@ -81,9 +97,9 @@ fn (res Response) status_msg() string {
 	return msg
 }
 
+
 struct Handler {
-	pub:
-		func fn (req Request) Response
+		func fn(Request) Response
 }
 
 
@@ -93,24 +109,45 @@ pub struct App {
 		router map[string]Handler
 }
 
-pub fn (app mut App) register(path string, func fn(req Request) Response) {
+pub fn (app mut App) register(path string, func fn(Request) Response) {
 	app.router[path] = Handler{func}
 }
 
-pub fn (app App) handle(method string, path string, query string, body string, headers map[string]string) Response {
-	mut func := default_handler_func
-	if (path in app.router) {
-		func = app.router[path].func
+fn (app App) handle(method string, path string, query_str string, body string, headers map[string]string) Response {
+	query := urldecode(query_str)
+	mut form := map[string]string
+	if headers['content-type'] in ['application/x-www-form-urlencoded', ''] {
+		form = urldecode(body)
 	}
 	req := Request{
 		method: method
 		path: path
 		query: query
+		form: form
 		body: body
 		headers: headers
 	}
+	handler := app.find_handler(path)
+	func := handler.func
 	res := func(req)
+	println(res)
 	return res
+}
+
+fn (app App) find_handler(path string) Handler {
+	router := app.router
+	if (path in router) {
+		return router[path]
+	}
+	path2 := path.trim_right('/')
+	if (path2 in router) {
+		return router[path2]
+	}
+	path3 := path2 + '/'
+	if (path3 in router) {
+		return router[path3]
+	}
+	return Handler{default_handler_func}
 }
 
 
@@ -124,13 +161,26 @@ pub struct Server {
 
 pub fn (server Server) run() {
     println('Running Valval app on http://$server.address:$server.port ...')
-    listener := net.listen(server.port) or { panic('failed to listen') }
+    // listener := net.listen(server.port) or { panic('failed to listen') }
     for {
+    	listener := net.listen(server.port) or { panic('failed to listen') }
 		conn := listener.accept() or { panic('accept failed') }
-		println('------------')
+		listener.close() or {} // todo: do not close listener and recreate everytime
+		println('===============')
 		println(conn)
-		message := readall(conn)
+		message := readall(conn) or {
+			println(err)
+			if err == '413' {
+				conn.write(HTTP_413) or {}
+			} else {
+				conn.write(HTTP_500) or {}
+			}
+			conn.close() or {}
+			continue
+		}
+		println('------------')
 		println(message)
+		println('------------')
 		lines := message.split_into_lines()
 		if lines.len < 2 {
 			println('invalid message for http')
@@ -138,7 +188,7 @@ pub fn (server Server) run() {
 			conn.close() or {}
 			continue
 		}
-		first_line := strip(lines[0])
+		first_line := lines[0].trim_space()
 		println(first_line)
 		items := first_line.split(' ')
 		println(items)
@@ -149,33 +199,33 @@ pub fn (server Server) run() {
 			continue
 		}
 		method := items[0]
+		// url => <scheme>://<netloc>/<path>;<params>?<query>#<fragment>
 		url := items[1]
 		path := url.all_before('?')
 		mut query := ''
-		if url.split('?').len > 1 {
-			// if url contains '?'
-			query = url.all_after('?')
+		if url.contains('?') {
+			query = url.all_after('?').all_before('#')
 		}
 		println('$method, $url, $path, $query')
 		mut headers := map[string]string
 		mut body := ''
 		mut flag := true
 		for line in lines[1..] {
-			sline := strip(line)
+			sline := line.trim_space()
 			if sline == '' {
 				flag = false
 			}
 			if flag {
 				header_name, header_value := split2(sline, ':')
-				headers[header_name] = header_value
+				headers[header_name.to_lower()] = header_value.trim_space()
 			} else {
 				body += sline + '\r\n'
 			}
 		}
-		body = strip(body)
+		body = body.trim_space()
 		println(headers)
 		println(body)
-		println('--------')
+		println('------------')
 		
 		res := server.app.handle(method, path, query, body, headers)
 
@@ -191,21 +241,16 @@ pub fn (server Server) run() {
 		}
 
 		conn.close() or {}
-		println('--------------------')
+		println('======================')
     }
 }
 
 
 // ===== functions ======
 
-fn strip(s string) string {
-	// strip('\nabc\r\n') => 'abc'
-	return s.trim('\r\n')
-}
-
-
 fn split2(s string, flag string) (string, string) {
 	// split2('abc:def:xyz', ':') => 'abc', 'def:xyz'
+	// split2('abc', ':') => 'abc', ''
 	items := s.split(flag)
 	return items[0], items[1..].join(flag)
 }
@@ -218,8 +263,27 @@ fn default_handler_func(req Request) Response {
 	return res
 }
 
-fn readall(conn net.Socket) string {
+fn urldecode(query_str string) map[string]string {
+	mut query := map[string]string
+	mut s := query_str
+	s = s.replace('+', ' ')
+	items := s.split('&')
+	for item in items {
+		if item.len == 0 {
+			continue
+		}
+		key, value := split2(item.trim_space(), '=')
+		val := urllib.query_unescape(value) or {
+			continue
+		}
+		query[key] = val
+	}
+	return query
+}
+
+fn readall(conn net.Socket) ?string {
 	mut message := ''
+	mut total_size := 0
 	for {
 		buf := [1024]byte
 		println('recv..')
@@ -229,7 +293,11 @@ fn readall(conn net.Socket) string {
 			break
 		}
 		bs, m := conn.recv(1024 - 1)
-		println('n: $m')
+		total_size += m
+		println('m: $m, total: $total_size')
+		if total_size > POST_BODY_LIMIT {
+			return error('413')
+		}
 		ss := tos_clone(bs)
 		message += ss
 		if n == m {
@@ -239,6 +307,36 @@ fn readall(conn net.Socket) string {
 	return message
 }
 
+pub fn runserver(app App, port int) {
+	mut p := port
+	if port <= 0 || port > 65536 {
+		p = 8012
+	}
+	server := Server{
+		port: p
+		app: app
+	}
+	server.run()
+}
+
+pub fn text_response(content string) Response {
+	res := Response {
+		status: 200
+		body: content
+		content_type: 'text/plain'
+	}
+	return res
+}
+
+pub fn json_response<T>(obj T) Response {
+	str := json.encode(obj)
+	res := Response {
+		status: 200
+		body: str
+		content_type: 'application/json'
+	}
+	return res
+}
 
 
 // ========= Request Message Example =========
