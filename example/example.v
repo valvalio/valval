@@ -3,11 +3,8 @@ module main
 // git clone https://github.com/toajy123/valval
 // 
 // v build module ./valval
-// or 
-// mkdir -p ~/.vmodules/
-// mv ./valval ~/.vmodules/
 // or
-// ln -s /path/to/valval ~/.vmodules/valval
+// ln -s $(pwd)/valval ~/.vmodules/valval
 // 
 // cd example && v run example.v
 
@@ -16,30 +13,33 @@ import (
 )
 
 
+struct User {
+	name string
+	age int
+	sex bool
+}
+
+
 fn index(req valval.Request) valval.Response {
-	return valval.response_redirect('/test1')
+	return valval.response_redirect('/test4')
 }
 
 fn test1(req valval.Request) valval.Response {
-	aa := req.query['aa']
-	content := 'test1: aa = $aa'
+	name := req.query['name']
+	content := 'test1: name = $name'
 	res := valval.response_text(content)
 	return res
 }
 
 fn test2(req valval.Request) valval.Response {
 	method := req.method
-	aa := req.form['aa']
-	content := '$method: aa = $aa'
+	if method == 'DELETE' {
+		return valval.response_bad('can not delete data!')
+	}
+	name := req.get('name', 'jim')
+	content := '$method: name = $name'
 	res := valval.response_text(content)
 	return res
-}
-
-
-struct User {
-	name string
-	age int
-	sex bool
 }
 
 fn test3(req valval.Request) valval.Response {
@@ -61,23 +61,28 @@ fn test4(req valval.Request) valval.Response {
 	return res
 }
 
-fn test5(req valval.Request) valval.Response {
-	return valval.response_redirect('/test4/')
+fn post_test4(req valval.Request) valval.Response {
+	name := req.form['name']
+	age := req.form['age']
+	url := '/test3/?name=$name&age=$age'
+	return valval.response_redirect(url)
 }
 
 
 fn main() {
-	println('valval example')
 
 	mut app := valval.new_app(true)
 
-	app.register('/', index)
+	app.serve_static('/static/', './static/')
+
+	app.register('/', index)  // as same as: ('', index)
 	app.register('/test1', test1)
-	app.register('/test2', test2)
+	app.register('/test2/info', test2)
 	app.register('/test3', test3)
 	app.register('/test4', test4)
-	app.register('/test5', test5)
-	app.serve_static('/static/', './static/')
+	app.register('POST:/test4', post_test4)
+	
+	// app.register('*', index)
 
 	valval.runserver(app, 8012)
 

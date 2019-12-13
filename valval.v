@@ -114,7 +114,9 @@ pub struct App {
 }
 
 pub fn (app mut App) register(path string, func fn(Request) Response) {
-	app.router[path] = Handler{func}
+	// route path should not be ends with /
+	rpath := path.trim_right('/')
+	app.router[rpath] = Handler{func}
 }
 
 fn (app App) handle(method string, path string, query_str string, body string, headers map[string]string) Response {
@@ -140,25 +142,29 @@ fn (app App) handle(method string, path string, query_str string, body string, h
 		body: body
 		headers: headers
 	}
-	handler := app.find_handler(path)
+	handler := app.find_handler(req)
 	func := handler.func
 	res := func(req)
 	return res
 }
 
-fn (app App) find_handler(path string) Handler {
+fn (app App) find_handler(req Request) Handler {
 	router := app.router
+	path := req.path.trim_right('/')
+	method_path := '${req.method}:$path'
+	// first match `method:path`
+	if (method_path in router) {
+		return router[method_path]
+	}
+	// then math path
 	if (path in router) {
 		return router[path]
 	}
-	path2 := path.trim_right('/')
-	if (path2 in router) {
-		return router[path2]
+	// then use common handler if it exists
+	if '*' in router {
+		return router['*']
 	}
-	path3 := path2 + '/'
-	if (path3 in router) {
-		return router[path3]
-	}
+	// last rethrn default handler
 	return Handler{default_handler_func}
 }
 
@@ -229,7 +235,7 @@ pub fn (server Server) run() {
 			conn.close() or {}
 			continue
 		}
-		method := items[0]
+		method := items[0].to_upper()
 		// url => <scheme>://<netloc>/<path>;<params>?<query>#<fragment>
 		url := items[1]
 		path := url.all_before('?')
@@ -431,6 +437,16 @@ pub fn response_redirect(url string) Response {
 	}
 	return res
 }
+
+pub fn response_bad(msg string) Response {
+	res := Response {
+		status: 400
+		body: msg
+	}
+	return res
+}
+
+
 
 
 
