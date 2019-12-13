@@ -105,9 +105,12 @@ struct Handler {
 
 
 pub struct App {
-		name string = 'valval_app'
+	pub:
+		name string = 'ValvalApp'
+		debug bool = true
 	mut:
 		router map[string]Handler
+		static_map map[string]string
 }
 
 pub fn (app mut App) register(path string, func fn(Request) Response) {
@@ -115,6 +118,15 @@ pub fn (app mut App) register(path string, func fn(Request) Response) {
 }
 
 fn (app App) handle(method string, path string, query_str string, body string, headers map[string]string) Response {
+
+	for static_prefix in app.static_map.keys() {
+		if path.starts_with(static_prefix) {
+			static_root := app.static_map[static_prefix]
+			fpath := path.replace_once(static_prefix, static_root)
+			return response_file(fpath)
+		}
+	}
+
 	query := urldecode(query_str)
 	mut form := map[string]string
 	if headers['content-type'] in ['application/x-www-form-urlencoded', ''] {
@@ -131,7 +143,6 @@ fn (app App) handle(method string, path string, query_str string, body string, h
 	handler := app.find_handler(path)
 	func := handler.func
 	res := func(req)
-	println(res)
 	return res
 }
 
@@ -151,9 +162,23 @@ fn (app App) find_handler(path string) Handler {
 	return Handler{default_handler_func}
 }
 
+pub fn (app mut App) serve_static(static_prefix string, static_root string) {
+	// app.serve_static('/static/', './static/')
+	mut prefix := static_prefix
+	mut root := static_root
+	if !prefix.ends_with('/') {
+		prefix += '/'
+	}
+	if !root.ends_with('/') {
+		root += '/'
+	}
+	app.static_map[prefix] = root
+}
+
 
 pub struct Server {
-		name string = 'valval server'
+	pub:
+		name string = 'ValvalServer'
 		address string = '0.0.0.0'
 		port int = 8012
 	mut:
@@ -161,15 +186,21 @@ pub struct Server {
 }
 
 pub fn (server Server) run() {
-    println('Running Valval app on http://$server.address:$server.port ...')
+	app := server.app
+    println('${server.name} with ${app.name} running on http://$server.address:$server.port ...')
+	println('working in: ${os.getwd()}')
+	println('OS: ${os.user_os()}')
+	println('Debug: ${app.debug}')
     // listener := net.listen(server.port) or { panic('failed to listen') }
     for {
     	listener := net.listen(server.port) or { panic('failed to listen') }
 		conn := listener.accept() or { panic('accept failed') }
 		listener.close() or {} // todo: do not close listener and recreate everytime
-		println('===============')
-		println(conn)
-		message := readall(conn) or {
+		if app.debug {
+			println('===============')
+			println(conn)
+		}
+		message := readall(conn, app.debug) or {
 			println(err)
 			if err == '413' {
 				conn.write(HTTP_413) or {}
@@ -179,9 +210,10 @@ pub fn (server Server) run() {
 			conn.close() or {}
 			continue
 		}
-		println('------------')
-		println(message)
-		println('------------')
+		if app.debug {
+			println('------------')
+			println(message)
+		}
 		lines := message.split_into_lines()
 		if lines.len < 2 {
 			println('invalid message for http')
@@ -190,9 +222,7 @@ pub fn (server Server) run() {
 			continue
 		}
 		first_line := lines[0].trim_space()
-		println(first_line)
 		items := first_line.split(' ')
-		println(items)
 		if items.len < 2 {
 			println('invalid data for http')
 			conn.write(HTTP_500) or {}
@@ -207,10 +237,16 @@ pub fn (server Server) run() {
 		if url.contains('?') {
 			query = url.all_after('?').all_before('#')
 		}
-		println('$method, $url, $path, $query')
+		println(first_line)
+		if app.debug {
+			println('------------')
+			println(items)
+			println('$method, $url, $path, $query')
+		}
 		mut headers := map[string]string
 		mut body := ''
 		mut flag := true
+		// length of lines must more than 2
 		for line in lines[1..] {
 			sline := line.trim_space()
 			if sline == '' {
@@ -224,25 +260,40 @@ pub fn (server Server) run() {
 			}
 		}
 		body = body.trim_space()
-		println(headers)
-		println(body)
-		println('------------')
+		if app.debug {
+			println('------------')
+			println(headers)
+			if body.len > 2000 {
+				println(body[..2000])
+			} else {
+				println(body)
+			}
+		}
 		
-		res := server.app.handle(method, path, query, body, headers)
+		res := app.handle(method, path, query, body, headers)
 
 		mut result := 'HTTP/1.1 $res.status ${res.status_msg()}\r\n'
 		result += 'Content-Type: $res.content_type\r\n'
 		result += '${res.header_text()}'
 		result += '\r\n'
 		result += '$res.body'
-		println(result)
+		if app.debug {
+			println('------------')
+			if result.len > 2000 {
+				println(result[..2000])
+			} else {
+				println(result)
+			}
+		}
 
         conn.write(result) or { 
 			conn.write(HTTP_500) or {}
 		}
-
 		conn.close() or {}
-		println('======================')
+
+		if app.debug {
+			println('======================')
+		}
     }
 }
 
@@ -252,7 +303,11 @@ pub fn (server Server) run() {
 fn split2(s string, flag string) (string, string) {
 	// split2('abc:def:xyz', ':') => 'abc', 'def:xyz'
 	// split2('abc', ':') => 'abc', ''
-	items := s.split(flag)
+	mut items := s.split(flag)
+	if items.len == 1 {
+		items << ''
+	}
+	// length of items must more than 2
 	return items[0], items[1..].join(flag)
 }
 
@@ -282,20 +337,26 @@ fn urldecode(query_str string) map[string]string {
 	return query
 }
 
-fn readall(conn net.Socket) ?string {
+fn readall(conn net.Socket, debug bool) ?string {
 	mut message := ''
 	mut total_size := 0
 	for {
 		buf := [1024]byte
-		println('recv..')
+		if debug {
+			println('recv..')
+		}
 		n := C.recv(conn.sockfd, buf, 1024, 2)
-		println('n: $n')
+		if debug {
+			println('n: $n')
+		}
 		if n == 0 {
 			break
 		}
 		bs, m := conn.recv(1024 - 1)
 		total_size += m
-		println('m: $m, total: $total_size')
+		if debug {
+			println('m: $m, total: $total_size')
+		}
 		if total_size > POST_BODY_LIMIT {
 			return error('413')
 		}
@@ -306,6 +367,10 @@ fn readall(conn net.Socket) ?string {
 		}
 	}
 	return message
+}
+
+pub fn new_app(debug bool) App {
+	return App{debug: debug}
 }
 
 pub fn runserver(app App, port int) {
@@ -320,7 +385,7 @@ pub fn runserver(app App, port int) {
 	server.run()
 }
 
-pub fn text_response(content string) Response {
+pub fn response_text(content string) Response {
 	res := Response {
 		status: 200
 		body: content
@@ -329,7 +394,7 @@ pub fn text_response(content string) Response {
 	return res
 }
 
-pub fn json_response<T>(obj T) Response {
+pub fn response_json<T>(obj T) Response {
 	str := json.encode(obj)
 	res := Response {
 		status: 200
@@ -339,16 +404,17 @@ pub fn json_response<T>(obj T) Response {
 	return res
 }
 
-pub fn file_response(path string) Response {
-	abs_path := '${os.getwd()}/$path'
-	os.exists
-	println(abs_path)
-	println(os.user_os())
-	content := os.read_file(abs_path) or { 
-		println(err)
-		return Response{status: 500}
+pub fn response_file(path string) Response {
+	// fpath := '${os.getwd()}/$path'
+	fpath := path
+	if !os.exists(fpath) {
+		return Response{status: 404, body: '$fpath file not found! [404]'}
 	}
-	ext := os.ext(path)
+	content := os.read_file(fpath) or { 
+		println(err)
+		return Response{status: 500, body: '500'}
+	}
+	ext := os.ext(fpath)
 	content_type := MINE_MAP[ext]
 	res := Response {
 		status: 200
@@ -357,6 +423,15 @@ pub fn file_response(path string) Response {
 	}
 	return res
 }
+
+pub fn response_redirect(url string) Response {
+	res := Response {
+		status: 301
+		headers: {'Location': url}
+	}
+	return res
+}
+
 
 
 // ========= Request Message Example =========

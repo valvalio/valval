@@ -1,21 +1,23 @@
 # todo
 
+- homepage / document
+
 - router improve
 
+- request body  ok
 - request multipart-form
-- request json
 - request params
 - request files
 - request cookies
 
+- redirect  ok
+- statics   ok
+- html  ok
+- html + vue [+ element / mint / vant / antd]
 - reponse set_cookie
-- redirect
-- statics
 - template / include / base
-- html
-- html + vue
-- vue + element / mint / vant / vex / custom ...
+- storage / orm
 
-- multi-async
+- multi / async
 
-- homepage / document
+
