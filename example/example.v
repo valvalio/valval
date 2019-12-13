@@ -74,12 +74,7 @@ fn post_test4(req valval.Request) valval.Response {
 }
 
 fn test5(req valval.Request) valval.Response {
-	mut data := User{}
-	if req.is_view() {
-		user := User{'Jim', 14, true}
-		data = user
-	}
-	return valval.response_template('template/test5.html', req, data, '')
+	return valval.response_file('template/test5.html')
 }
 
 fn test6(req valval.Request) valval.Response {

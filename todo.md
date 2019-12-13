@@ -2,6 +2,7 @@
 
 - homepage / documention
 - publish to vpm
+- add to awesome-v
 - comment
 - test
 
