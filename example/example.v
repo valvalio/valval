@@ -10,6 +10,7 @@ module main
 
 import (
 	valval
+	json
 )
 
 
@@ -17,6 +18,13 @@ struct User {
 	name string
 	age int
 	sex bool
+}
+
+struct Data {
+	name string
+	age int
+	sex bool
+	friends []User
 }
 
 
@@ -68,6 +76,15 @@ fn post_test4(req valval.Request) valval.Response {
 	return valval.response_redirect(url)
 }
 
+fn test5(req valval.Request) valval.Response {
+	mut view_data := User{}
+	if req.is_view() {
+		user := User{'lilei', 14, true}
+		view_data = user
+	}
+	return valval.response_template('template/test5.html', req, view_data)
+}
+
 
 fn main() {
 
@@ -81,6 +98,7 @@ fn main() {
 	app.register('/test3', test3)
 	app.register('/test4', test4)
 	app.register('POST:/test4', post_test4)
+	app.register('/test5', test5)
 	
 	// app.register('*', index)
 

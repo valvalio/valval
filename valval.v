@@ -51,6 +51,14 @@ pub fn (req Request) get(key string, default_value string) string {
 }
 
 
+pub fn (req Request) is_view() bool {
+	if req.get('valview', '') != '' {
+		return true
+	}
+	return false
+}
+
+
 pub struct Response {
 		status int = 200
 		body string = ''
@@ -128,7 +136,6 @@ fn (app App) handle(method string, path string, query_str string, body string, h
 			return response_file(fpath)
 		}
 	}
-
 	query := urldecode(query_str)
 	mut form := map[string]string
 	if headers['content-type'] in ['application/x-www-form-urlencoded', ''] {
@@ -411,16 +418,15 @@ pub fn response_json<T>(obj T) Response {
 }
 
 pub fn response_file(path string) Response {
-	// fpath := '${os.getwd()}/$path'
-	fpath := path
-	if !os.exists(fpath) {
-		return Response{status: 404, body: '$fpath file not found! [404]'}
+	// path := '${os.getwd()}/$path'
+	if !os.exists(path) {
+		return response_bad('$path file not found')
 	}
-	content := os.read_file(fpath) or { 
+	content := os.read_file(path) or { 
 		println(err)
-		return Response{status: 500, body: '500'}
+		return response_bad('$path read_file failed')
 	}
-	ext := os.ext(fpath)
+	ext := os.ext(path)
 	content_type := MINE_MAP[ext]
 	res := Response {
 		status: 200
@@ -442,6 +448,27 @@ pub fn response_bad(msg string) Response {
 	res := Response {
 		status: 400
 		body: msg
+	}
+	return res
+}
+
+pub fn response_template<T>(path string, req Request, view_data T) Response {
+	if req.is_view() {
+		return response_json(view_data)
+	}
+	if !path.ends_with('.html') {
+		return response_bad('template must be a .html file')
+	}
+	if !os.exists(path) {
+		return response_bad('$path template not found')
+	}
+	content := os.read_file(path) or { 
+		println(err)
+		return response_bad('$path read_file failed')
+	}
+	res := Response {
+		status: 200
+		body: content
 	}
 	return res
 }
