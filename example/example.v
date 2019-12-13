@@ -9,10 +9,11 @@ module main
 // or
 // ln -s /path/to/valval ~/.vmodules/valval
 // 
-// v run example
+// cd example && v run example.v
 
 import (
 	valval
+	os
 )
 
 
@@ -52,6 +53,12 @@ fn test3(req valval.Request) valval.Response {
 	return res
 }
 
+fn test4(req valval.Request) valval.Response {
+	println(os.getwd())
+	res := valval.file_response('template/test4.html')
+	return res
+}
+
 
 fn main() {
 	println('valval example')
@@ -60,6 +67,7 @@ fn main() {
 	app.register('/test1', test1)
 	app.register('/test2', test2)
 	app.register('/test3', test3)
+	app.register('/test4', test4)
 
 	valval.runserver(app, 8012)
 }

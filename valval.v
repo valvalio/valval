@@ -5,6 +5,7 @@ import (
 	net
 	net.urllib
 	json
+	os
 )
 
 const (
@@ -53,7 +54,7 @@ pub fn (req Request) get(key string, default_value string) string {
 pub struct Response {
 		status int = 200
 		body string = ''
-		content_type string = 'text/html'
+		content_type string = 'text/html; charset=utf-8'
 		headers map[string]string
 }
 
@@ -323,7 +324,7 @@ pub fn text_response(content string) Response {
 	res := Response {
 		status: 200
 		body: content
-		content_type: 'text/plain'
+		content_type: 'text/plain; charset=utf-8'
 	}
 	return res
 }
@@ -334,6 +335,25 @@ pub fn json_response<T>(obj T) Response {
 		status: 200
 		body: str
 		content_type: 'application/json'
+	}
+	return res
+}
+
+pub fn file_response(path string) Response {
+	abs_path := '${os.getwd()}/$path'
+	os.exists
+	println(abs_path)
+	println(os.user_os())
+	content := os.read_file(abs_path) or { 
+		println(err)
+		return Response{status: 500}
+	}
+	ext := os.ext(path)
+	content_type := MINE_MAP[ext]
+	res := Response {
+		status: 200
+		body: content
+		content_type: content_type
 	}
 	return res
 }
