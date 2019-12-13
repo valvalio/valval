@@ -2,38 +2,32 @@
     <head>
         <title>valval template power by vue</title>
     </head>
-    <body>
-        <div id="app">
-            <h1>{{ name }}</h1>
-            <h2>{{ age }}</h2>
-            <h3 v-if="sex">male</h3>
+        <body>
+<!-- created by valval -->
+<div id="valapp">
+
+            <h1>{{ data.name }}</h1>
+            <h2>{{ data.age }}</h2>
+            <h3 v-if="data.sex">male</h3>
             <h3 v-else>female</h3>
-        </div>
-    
-        
+
+</div>
         <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
         <!-- <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script> -->
         <script src="https://cdn.jsdelivr.net/npm/vue@2.6.0"></script>
         <script>
             vue = new Vue({
-                el: '#app',
+                el: '#valapp',
                 data: function() {
                     return { 
-                        name: '',
-                        age: 0,
-                        sex: true 
+                        data: {}
                     }
                 },
                 mounted: function() {
                     axios.get(location.href, {params: {valview: 1}})
                     .then(function (res) {
                         // console.log(res);
-                        console.log(vue)
-                        keys = Object.keys(res.data)
-                        for (key of keys) {
-                            value = res.data[key]
-                            vue[key] = value
-                        }
+                        vue.data = res.data
                     })
                 }
             })

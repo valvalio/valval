@@ -452,9 +452,10 @@ pub fn response_bad(msg string) Response {
 	return res
 }
 
-pub fn response_template<T>(path string, req Request, view_data T) Response {
+pub fn response_template<T>(path string, req Request, data T, ui string) Response {
+	// ui: element / mint / vant / antd
 	if req.is_view() {
-		return response_json(view_data)
+		return response_json(data)
 	}
 	if !path.ends_with('.html') {
 		return response_bad('template must be a .html file')
@@ -462,9 +463,43 @@ pub fn response_template<T>(path string, req Request, view_data T) Response {
 	if !os.exists(path) {
 		return response_bad('$path template not found')
 	}
-	content := os.read_file(path) or { 
+	mut content := os.read_file(path) or { 
 		println(err)
 		return response_bad('$path read_file failed')
+	}
+	top := '<body>\n<!-- created by valval -->\n<div id="valapp">'
+	if !content.contains(top) {
+		content = content.replace_once('<body>', top)
+		mut bottom := '\n</div>\n<!-- end of valapp -->\n'
+		bottom += '<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>\n'
+		// bottom += '<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>\n'
+		bottom += '<script src="https://cdn.jsdelivr.net/npm/vue@2.6.0"></script>\n'
+		
+		if ui == 'element' {
+			bottom += '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-ui@2.13.0/lib/theme-chalk/index.css">\n'
+			// bottom += '<script src="https://cdn.jsdelivr.net/npm/element-ui@2.13.0"></script>\n'
+			bottom += '<script src="https://cdn.jsdelivr.net/npm/element-ui@2.13.0/lib/index.js"></script>\n'
+		}
+
+		bottom += '<script>\n'
+		bottom += '    vue = new Vue({\n'
+		bottom += '        el: "#valapp",\n'
+		bottom += '        data: function() {\n'
+		bottom += '            return { \n'
+		bottom += '                data: {}\n'
+		bottom += '            }\n'
+		bottom += '        },\n'
+		bottom += '        mounted: function() {\n'
+		bottom += '            axios.get(location.href, {params: {valview: 1}})\n'
+		bottom += '            .then(function (res) {\n'
+		bottom += '                // console.log(res);\n'
+		bottom += '                vue.data = res.data\n'
+		bottom += '            })\n'
+		bottom += '        }\n'
+		bottom += '    })\n'
+		bottom += '</script>\n'
+		bottom += '</body>'
+		content = content.replace_once('</body>', bottom)
 	}
 	res := Response {
 		status: 200

@@ -1,10 +1,13 @@
 # todo
 
-- homepage / document
+- homepage / documention
+- publish to vpm
+- comment
+- test
 
-- router improve
-
+- router improve    ok
 - request body  ok
+- request json
 - request multipart-form
 - request params
 - request files
@@ -13,10 +16,12 @@
 - redirect  ok
 - statics   ok
 - html  ok
-- html + vue [+ element / mint / vant / antd]
-- reponse set_cookie
-- template / include / base
+- vue template [+ element / mint / vant / antd]
+- vue template improve
 - storage / orm
+- reponse set_cookie
+
+- auth
 
 - multi / async
 

@@ -1,16 +1,13 @@
 module main
 
 // git clone https://github.com/toajy123/valval
+// ln -s $(pwd)/valval ~/.vmodules/valval  [or v build module ./valval]
+// cd valval/example && v run example.v
 // 
-// v build module ./valval
-// or
-// ln -s $(pwd)/valval ~/.vmodules/valval
-// 
-// cd example && v run example.v
+// curl http://127.0.0.1:8012
 
 import (
 	valval
-	json
 )
 
 
@@ -77,12 +74,21 @@ fn post_test4(req valval.Request) valval.Response {
 }
 
 fn test5(req valval.Request) valval.Response {
-	mut view_data := User{}
+	mut data := User{}
 	if req.is_view() {
-		user := User{'lilei', 14, true}
-		view_data = user
+		user := User{'Jim', 14, true}
+		data = user
 	}
-	return valval.response_template('template/test5.html', req, view_data)
+	return valval.response_template('template/test5.html', req, data, '')
+}
+
+fn test6(req valval.Request) valval.Response {
+	mut data := User{}
+	if req.is_view() {
+		user := User{'Lucy', 13, false}
+		data = user
+	}
+	return valval.response_template('template/test6.html', req, data, 'element')
 }
 
 
@@ -99,6 +105,7 @@ fn main() {
 	app.register('/test4', test4)
 	app.register('POST:/test4', post_test4)
 	app.register('/test5', test5)
+	app.register('/test6', test6)
 	
 	// app.register('*', index)
 
