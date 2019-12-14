@@ -6,32 +6,23 @@ import (
 	net.urllib
 	json
 	os
+	time
 )
 
 const (
+	VERSION = '0.1.0'
 	HTTP_404 = 'HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\n404 Not Found'
 	HTTP_413 = 'HTTP/1.1 413 Request Entity Too Large\r\nContent-Type: text/plain\r\n\r\n413 Request Entity Too Large'
 	HTTP_500 = 'HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\n500 Internal Server Error'
-	MINE_MAP = {
-		'.css': 'text/css; charset=utf-8',
-		'.gif': 'image/gif',
-		'.htm': 'text/html; charset=utf-8',
-		'.html': 'text/html; charset=utf-8',
-		'.jpg': 'image/jpeg',
-		'.js': 'application/javascript',
-		'.wasm': 'application/wasm',
-		'.pdf': 'application/pdf',
-		'.png': 'image/png',
-		'.svg': 'image/svg+xml',
-		'.xml': 'text/xml; charset=utf-8'
-	}
 	POST_BODY_LIMIT = 1024 * 1024 * 20  // 20MB
+	API_KEY_FLAG = 'valvalapikey'  		// the param name won't be used anywhere else
 )
 
 // ===== structs ======
 
 pub struct Request {
 	pub:
+		app App
 		method string
 		path string
 		query map[string]string
@@ -50,12 +41,14 @@ pub fn (req Request) get(key string, default_value string) string {
 	return default_value
 }
 
+pub fn (req Request) is_api() bool {
+	// api request by axios
+	return API_KEY_FLAG in req.query
+}
 
-pub fn (req Request) is_view() bool {
-	if req.get('valview', '') != '' {
-		return true
-	}
-	return false
+pub fn (req Request) is_page() bool {
+	// the first page view
+	return !req.is_api()
 }
 
 
@@ -112,13 +105,19 @@ struct Handler {
 }
 
 
-pub struct App {
+struct App {
 	pub:
 		name string = 'ValvalApp'
 		debug bool = true
+		run_ts int = 0
 	mut:
 		router map[string]Handler
 		static_map map[string]string
+}
+
+pub fn new_app(debug bool) App {
+	run_ts := time.now().uni
+	return App{debug: debug, run_ts: run_ts}
 }
 
 pub fn (app mut App) register(path string, func fn(Request) Response) {
@@ -142,6 +141,7 @@ fn (app App) handle(method string, path string, query_str string, body string, h
 		form = urldecode(body)
 	}
 	req := Request{
+		app: app
 		method: method
 		path: path
 		query: query
@@ -171,7 +171,7 @@ fn (app App) find_handler(req Request) Handler {
 	if '*' in router {
 		return router['*']
 	}
-	// last rethrn default handler
+	// last return default handler
 	return Handler{default_handler_func}
 }
 
@@ -189,9 +189,8 @@ pub fn (app mut App) serve_static(static_prefix string, static_root string) {
 }
 
 
-pub struct Server {
+struct Server {
 	pub:
-		name string = 'ValvalServer'
 		address string = '0.0.0.0'
 		port int = 8012
 	mut:
@@ -200,10 +199,10 @@ pub struct Server {
 
 pub fn (server Server) run() {
 	app := server.app
-    println('${server.name} with ${app.name} running on http://$server.address:$server.port ...')
+    println('${app.name} running on http://$server.address:$server.port ...')
 	println('working in: ${os.getwd()}')
-	println('OS: ${os.user_os()}')
-	println('Debug: ${app.debug}')
+	println('OS: ${os.user_os()}, Debug: ${app.debug}')
+	println('Version: $VERSION')
     // listener := net.listen(server.port) or { panic('failed to listen') }
     for {
     	listener := net.listen(server.port) or { panic('failed to listen') }
@@ -277,7 +276,7 @@ pub fn (server Server) run() {
 			println('------------')
 			println(headers)
 			if body.len > 2000 {
-				println(body[..2000])
+				println(body[..2000] + ' ...')
 			} else {
 				println(body)
 			}
@@ -293,7 +292,7 @@ pub fn (server Server) run() {
 		if app.debug {
 			println('------------')
 			if result.len > 2000 {
-				println(result[..2000])
+				println(result[..2000] + ' ...')
 			} else {
 				println(result)
 			}
@@ -308,6 +307,125 @@ pub fn (server Server) run() {
 			println('======================')
 		}
     }
+}
+
+
+pub struct View {
+		req Request
+		template string
+		ui string = 'element'
+	mut:
+		context map[string]string
+	pub:
+		content string  // html after template compiled
+}
+
+pub fn new_view(req Request, template string, ui string) ?View{
+	if !(ui in ['element', 'mint', 'vant', 'antd', '', 'none']) {
+		return error('ui just support `element, mint, vant, antd, none` now')
+	}
+	if req.method != 'GET' {
+		return error('view template only support GET method')
+	}
+	if !template.ends_with('.html') {
+		return error('template must be a .html file')
+	}
+	if !os.exists(template) {
+		return error('$template template not found')
+	}
+
+	mut content := ''
+	template2 := template[..template.len-5] + '.val.html'
+	if os.exists(template2) {
+		ts0 := req.app.run_ts
+		ts1 := os.file_last_mod_unix(template)
+		ts2 := os.file_last_mod_unix(template2)
+		if ts2 > ts1 && ts2 > ts0 {
+			// use the cache file if available
+			file_content := os.read_file(template2) or {
+				return error(err)
+			}
+			content = file_content
+		}
+	}
+
+	if content == '' {
+		// compile the template
+		file_content := os.read_file(template) or {
+			return error(err)
+		}
+		content = file_content
+
+		mut top := '<body>\n<!-- created by valval -->\n<div id="valapp" style="display: none">\n'
+		top += '<div v-if="loading"> <p v-if="fail">Load failed, please check the network.</p><p v-else>loading...</p> </div>'
+		top += '<div v-else>'
+		content = content.replace_once('<body>', top)
+
+		mut bottom := '\n</div></div>\n<!-- end of valapp -->\n'
+		bottom += '<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>\n'
+		// bottom += '<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>\n'
+		bottom += '<script src="https://cdn.jsdelivr.net/npm/vue@2.6.0"></script>\n'
+
+		if ui == 'element' {
+			bottom +=  '<link href="https://cdn.jsdelivr.net/npm/element-ui@2.13.0/lib/theme-chalk/index.css" rel="stylesheet">\n'
+			bottom += '<script src="https://cdn.jsdelivr.net/npm/element-ui@2.13.0/lib/index.js"></script>\n'
+		} else if ui == 'mint' {
+			bottom +=  '<link href="https://cdn.jsdelivr.net/npm/mint-ui@2.2.13/lib/style.min.css" rel="stylesheet">\n'
+			bottom += '<script src="https://cdn.jsdelivr.net/npm/mint-ui@2.2.13/lib/index.js"></script>\n'
+		} else if ui == 'vant' {
+			bottom +=  '<link href="https://cdn.jsdelivr.net/npm/vant@2.2/lib/index.css" rel="stylesheet">\n'
+			bottom += '<script src="https://cdn.jsdelivr.net/npm/vant@2.2/lib/vant.min.js"></script>\n'
+		} else if ui == 'antd' {
+			bottom +=  '<link href="https://cdn.jsdelivr.net/npm/ant-design-vue@1.4.10/dist/antd.min.css" rel="stylesheet">\n'
+			bottom += '<script src="https://cdn.jsdelivr.net/npm/ant-design-vue@1.4.10/dist/antd.min.js"></script>\n'
+		}
+
+		bottom += '<script>\n'
+		bottom += '    vue = new Vue({\n'
+		bottom += '        el: "#valapp",\n'
+		bottom += '        data: function() {\n'
+		bottom += '            return { \n'
+		bottom += '                loading: true,\n'
+		bottom += '                fail: false,\n'
+		bottom += '            }\n'
+		bottom += '        },\n'
+		bottom += '        mounted: function() {\n'
+		bottom += '            this.fetch()\n'
+		bottom += '        },\n'
+		bottom += '        methods: {\n'
+		bottom += '            fetch: function(n) {\n'
+		bottom += '                var n = n || 0\n'
+		bottom += '                axios.get(location.href, {params: {$API_KEY_FLAG: "1"} })\n'
+		bottom += '                .then(function (res) { for(key of Object.keys(res.data)){vue[key] = res.data[key]}; vue.loading = false })\n'
+		bottom += '                .catch(function (err) { setTimeout(function(){ if(n<5){vue.fetch(n+1)}else{vue.fail=true} }, Math.random() * 1000 ) })\n'
+		bottom += '            },\n'
+		bottom += '        },\n'
+		bottom += '    })\n'
+		bottom += '    document.getElementById("valapp").style = ""\n'
+		bottom += '</script>\n'
+		bottom += '</body>'
+		content = content.replace_once('</body>', bottom)
+		os.write_file(template2, content)
+	}
+	view := View{
+		req: req
+		template: template
+		ui: ui
+		content: content
+	}
+	return view
+}
+
+pub fn (view View) get(key string) string {
+	if key in view.context {
+		return view.context[key]
+	}
+	return '{}'
+}
+
+pub fn (view mut View) set(key string, data string) {
+	// data should be a json str of obj / str / int / bool / list ..
+	view.context[key.trim_space()] = data
 }
 
 
@@ -382,10 +500,6 @@ fn readall(conn net.Socket, debug bool) ?string {
 	return message
 }
 
-pub fn new_app(debug bool) App {
-	return App{debug: debug}
-}
-
 pub fn runserver(app App, port int) {
 	mut p := port
 	if port <= 0 || port > 65536 {
@@ -396,6 +510,14 @@ pub fn runserver(app App, port int) {
 		app: app
 	}
 	server.run()
+}
+
+pub fn response_ok(content string) Response {
+	res := Response {
+		status: 200
+		body: content
+	}
+	return res
 }
 
 pub fn response_text(content string) Response {
@@ -417,6 +539,15 @@ pub fn response_json<T>(obj T) Response {
 	return res
 }
 
+pub fn response_json_str(data string) Response {
+	res := Response {
+		status: 200
+		body: data
+		content_type: 'application/json'
+	}
+	return res
+}
+
 pub fn response_file(path string) Response {
 	// path := '${os.getwd()}/$path'
 	if !os.exists(path) {
@@ -427,7 +558,20 @@ pub fn response_file(path string) Response {
 		return response_bad('$path read_file failed')
 	}
 	ext := os.ext(path)
-	content_type := MINE_MAP[ext]
+	mime_map := {
+		'.css': 'text/css; charset=utf-8',
+		'.gif': 'image/gif',
+		'.htm': 'text/html; charset=utf-8',
+		'.html': 'text/html; charset=utf-8',
+		'.jpg': 'image/jpeg',
+		'.js': 'application/javascript',
+		'.wasm': 'application/wasm',
+		'.pdf': 'application/pdf',
+		'.png': 'image/png',
+		'.svg': 'image/svg+xml',
+		'.xml': 'text/xml; charset=utf-8'
+	}
+	content_type := mime_map[ext]
 	res := Response {
 		status: 200
 		body: content
@@ -452,66 +596,22 @@ pub fn response_bad(msg string) Response {
 	return res
 }
 
-pub fn response_template<T>(path string, req Request, data T, ui string) Response {
-	// ui: element / mint / vant / antd
-	if req.is_view() {
-		return response_json(data)
+pub fn response_view(view View) Response {
+	req := view.req
+	if req.is_page() {
+		// first get request, return html page
+		return response_ok(view.content)
 	}
-	if !path.ends_with('.html') {
-		return response_bad('template must be a .html file')
+	// api request, return json data
+	mut r := '{\n'
+	for key in view.context.keys() {
+		json_str := view.context[key]
+		r += '  "$key" : $json_str ,\n'
 	}
-	if !os.exists(path) {
-		return response_bad('$path template not found')
-	}
-	mut content := os.read_file(path) or { 
-		println(err)
-		return response_bad('$path read_file failed')
-	}
-	
-	// os.file_last_mod_unix
-
-	top := '<body>\n<!-- created by valval -->\n<div id="valapp">'
-	content = content.replace_once('<body>', top)
-
-	mut bottom := '\n</div>\n<!-- end of valapp -->\n'
-	bottom += '<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>\n'
-	// bottom += '<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>\n'
-	bottom += '<script src="https://cdn.jsdelivr.net/npm/vue@2.6.0"></script>\n'
-	
-	if ui == 'element' {
-		bottom += '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-ui@2.13.0/lib/theme-chalk/index.css">\n'
-		bottom += '<script src="https://cdn.jsdelivr.net/npm/element-ui@2.13.0/lib/index.js"></script>\n'
-	}
-
-	bottom += '<script>\n'
-	bottom += '    vue = new Vue({\n'
-	bottom += '        el: "#valapp",\n'
-	bottom += '        data: function() {\n'
-	bottom += '            return { \n'
-	bottom += '                data: {}\n'
-	bottom += '            }\n'
-	bottom += '        },\n'
-	bottom += '        mounted: function() {\n'
-	bottom += '            axios.get(location.href, {params: {valview: 1}})\n'
-	bottom += '            .then(function (res) {\n'
-	bottom += '                // console.log(res);\n'
-	bottom += '                vue.data = res.data\n'
-	bottom += '            })\n'
-	bottom += '        }\n'
-	bottom += '    })\n'
-	bottom += '</script>\n'
-	bottom += '</body>'
-	content = content.replace_once('</body>', bottom)
-
-	res := Response {
-		status: 200
-		body: content
-	}
-	return res
+	r = r.trim_right(',\n')
+	r += '\n}'
+	return response_json_str(r)
 }
-
-
-
 
 
 // ========= Request Message Example =========

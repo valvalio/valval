@@ -5,6 +5,6 @@
 # Dynamic plugins .dll
 bin/
 
-
+*.val.html
 *.out
 example/example

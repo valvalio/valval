@@ -8,6 +8,7 @@ module main
 
 import (
 	valval
+	json
 )
 
 
@@ -17,16 +18,18 @@ struct User {
 	sex bool
 }
 
-struct Data {
+struct Book {
 	name string
-	age int
-	sex bool
-	friends []User
+	author string
 }
 
 
 fn index(req valval.Request) valval.Response {
-	return valval.response_redirect('/test4')
+	return valval.response_redirect('/test6')
+}
+
+fn hello(req valval.Request) valval.Response {
+	return valval.response_ok('hello world')
 }
 
 fn test1(req valval.Request) valval.Response {
@@ -56,7 +59,6 @@ fn test3(req valval.Request) valval.Response {
 		sex = false
 	}
 	user := User{name, age.int(), sex}
-	println(user)
 	res := valval.response_json(user)
 	return res
 }
@@ -78,12 +80,25 @@ fn test5(req valval.Request) valval.Response {
 }
 
 fn test6(req valval.Request) valval.Response {
-	mut data := User{}
-	if req.is_view() {
-		user := User{'Lucy', 13, false}
-		data = user
+	mut view := valval.new_view(req, 'template/test6.html', 'element') or {
+		return valval.response_bad(err)
 	}
-	return valval.response_template('template/test6.html', req, data, 'element')
+	if req.is_page() {
+		println('a user is viewing the test6 page')
+	} else {
+		println('api request by vue')
+		user := User{'lilei', 14, true}
+		view.set('user', json.encode(user))
+		users := [
+			User{'Lucy', 13, false},
+			User{'Lily', 13, false},
+			User{'Jim', 12, true},
+		]
+		total_count := users.len + 1
+		view.set('users', json.encode(users))
+		view.set('total_count', json.encode(total_count))
+	}
+	return valval.response_view(view)
 }
 
 
@@ -94,8 +109,9 @@ fn main() {
 	app.serve_static('/static/', './static/')
 
 	app.register('/', index)  // as same as: ('', index)
+	app.register('/hello/world', hello)
 	app.register('/test1', test1)
-	app.register('/test2/info', test2)
+	app.register('/test2', test2)
 	app.register('/test3', test3)
 	app.register('/test4', test4)
 	app.register('POST:/test4', post_test4)

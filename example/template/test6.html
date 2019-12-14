@@ -2,13 +2,33 @@
     <head>
         <title>valval template power by vue</title>
     </head>
-        <body>
+    <body>
+        <h1>{{ user.name }}</h1>
+        <h2>{{ user.age }}</h2>
+        <el-tag v-if="user.sex">male</el-tag>
+        <el-tag v-else>female</el-tag>
 
-            <h1>{{ data.name }}</h1>
-            <h2>{{ data.age }}</h2>
-            <el-tag v-if="data.sex">male</el-tag>
-            <el-tag v-else>female</el-tag>
+        <el-table :data="users">
+            <el-table-column prop="name" label="Name"></el-table-column>
+            <el-table-column prop="age" label="Age"></el-table-column>
+        </el-table>
 
+        <p>
+            Total {{ total_count }} Users.
+        </p>
+
+        <p v-for="u in users">
+            <span>{{u.name}}: </span>
+            <span v-if="u.sex">Male</span>
+            <span v-else>Female</span>
+        </p>
+        
+        <div>
+            <el-button type="primary">Element</el-button>
+            <mt-button type="primary">Mint</mt-button>
+            <van-button type="primary">Vant</van-button>
+            <a-button type="primary">Antd</a-button>
+        </div>
     </body>
     
 </html>

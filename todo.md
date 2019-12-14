@@ -17,8 +17,9 @@
 - redirect  ok
 - statics   ok
 - html  ok
-- vue template [+ element / mint / vant / antd]
-- vue template improve
+- vue template [+ element / mint / vant / antd] ok
+- improve vue data / mounted / methods blocks
+- template include
 - storage / orm
 - reponse set_cookie
 
