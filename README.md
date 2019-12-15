@@ -72,7 +72,7 @@ hello world
 ### Debug Mode
 
 You can decide whether to use debug mode when calling `valval.new_app`
-```
+```v
 mut app := valval.new_app(true)  // debug mode
 mut app := valval.new_app(false) // production mode
 ```
@@ -81,7 +81,7 @@ debug mode will print out more infomation while app running
 ### Service Port
 
 You can decide the service port number when calling the `valval.runserver`
-```
+```v
 valval.runserver(app, 8012)  // listening 8012 port
 valval.runserver(app, 80)    // listening 80 port
 ```
