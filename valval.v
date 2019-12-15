@@ -321,8 +321,8 @@ pub struct View {
 }
 
 pub fn new_view(req Request, template string, ui string) ?View{
-	if !(ui in ['element', 'mint', 'vant', 'antd', '', 'none']) {
-		return error('ui just support `element, mint, vant, antd, none` now')
+	if !(ui in ['element', 'mint', 'vant', 'antd', 'bootstrap', '', 'none']) {
+		return error('ui just support `element, mint, vant, antd, bootstrap, none` now')
 	}
 	if req.method != 'GET' {
 		return error('view template only support GET method')
@@ -378,6 +378,9 @@ pub fn new_view(req Request, template string, ui string) ?View{
 		} else if ui == 'antd' {
 			bottom +=  '<link href="https://cdn.jsdelivr.net/npm/ant-design-vue@1.4.10/dist/antd.min.css" rel="stylesheet">\n'
 			bottom += '<script src="https://cdn.jsdelivr.net/npm/ant-design-vue@1.4.10/dist/antd.min.js"></script>\n'
+		} else if ui == 'bootstrap' {
+			bottom +=  '<link href="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/css/bootstrap.min.css" rel="stylesheet">\n'
+			bottom += '<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/js/bootstrap.min.js"></script>\n'
 		}
 
 		bottom += '<script>\n'
