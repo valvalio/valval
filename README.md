@@ -14,7 +14,7 @@ $ cd v
 $ make
 ```
 
-### Install OpenSSL
+Install OpenSSL
 ```
 macOS:
 $ brew install openssl
@@ -23,7 +23,7 @@ Debian/Ubuntu:
 $ sudo apt install libssl-dev openssl ca-certificates
 ```
 
-### Or use V in docker, it's include OpenSSL
+Or use V in docker, it's include OpenSSL
 ```
 docker run -it -p 8012:8012 --name vlang taojy123/vlang bash
 ```
