@@ -6,7 +6,7 @@ It means you can develop a website fast and run it fast!
 
 ##### A simple demo:
 
-```go
+```v
 import valval
 
 fn hello(req valval.Request) valval.Response {
@@ -56,7 +56,7 @@ $ ln -s $(pwd)/valval ~/.vmodules/valval
 ### A Minimal Application
 
 A minimal Valval application looks something like this:
-```go
+```v
 // demo.v
 
 module main
@@ -88,7 +88,7 @@ hello world
 ### Debug Mode
 
 You can decide whether to use debug mode when calling `valval.new_app()`
-```go
+```v
 mut app := valval.new_app(true)  // debug mode
 mut app := valval.new_app(false) // production mode
 ```
@@ -97,7 +97,7 @@ debug mode will print out more infomation while app running
 ### Service Port
 
 You can decide the service port number when calling the `valval.runserver()`
-```go
+```v
 valval.runserver(app, 8012)  // listening 8012 port
 valval.runserver(app, 80)    // listening 80 port
 ```
@@ -109,7 +109,7 @@ Use the `App.register()` function to band a handler function to request path
 
 The handler function should have a parameter of type `Request` and return a `Response`
 
-```go
+```v
 mut app := valval.new_app(true)
 
 app.register('/', hello)   		         // http://127.0.0.1
@@ -133,7 +133,7 @@ Currently, only the following data can be parsed:
 - query parameters by GET request; by `valval.Request.query[xxx]`
 - `x-www-form-urlencoded` parameters by POST / PUT / PATCH request; by `valval.Request.form[xxx]`
 
-```go
+```v
 fn hello(req valval.Request) valval.Response {
 	mut name = request.query['name']
 	if name == '' {
@@ -156,7 +156,7 @@ app.register('POST:/hello', post_hello)
 
 `valval.Request.get()` provides a quick way to get data whether it is from `query` or `form`. 
 
-```go
+```v
 fn hello(req valval.Request) valval.Response {
 	name = request.get('name', 'world')  // default: 'world'
 	return valval.response_ok('hello $name')
@@ -176,7 +176,7 @@ More type of request data will support in the future:
 
 Use `valval.App.serve_static` to serve local files
 
-```go
+```v
 mut app := valval.new_app(true)
 
 app.serve_static('/static/', './relative/path/to/static/')  
@@ -203,7 +203,7 @@ A example for template:
 
 `server.v`:
 
-```go
+```v
 import (
 	valval
 	json
@@ -263,7 +263,7 @@ fn users(req valval.Request) valval.Response {
 
 Use `valval.response_redirect()` to generate a redirect response
 
-```go
+```v
 fn test1(req valval.Request) valval.Response {
 	name = req.get('name', '')
 	if name == '' {
@@ -279,7 +279,7 @@ In addition to the responses mentioned above (`response_ok`,  `response_view`, `
 
 Valval also provides more other types of responses, as follows:
 
-```go
+```v
 struct User {
 	name string
 	age int

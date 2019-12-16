@@ -301,9 +301,9 @@ pub fn (server Server) run() {
 		}
 		
 		res := app.handle(method, path, query, body, headers)
-
 		mut result := 'HTTP/1.1 $res.status ${res.status_msg()}\r\n'
 		result += 'Content-Type: $res.content_type\r\n'
+		result += 'Content-Length: $res.body.len\r\n'
 		result += '${res.header_text()}\r\n'
 		result += '\r\n'
 		result += '$res.body'
