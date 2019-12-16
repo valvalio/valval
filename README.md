@@ -340,7 +340,7 @@ You can visit <https://github.com/taojy123/valval/tree/master/example> to see th
 
 ### Structs
 
-**valval.Request ** {
+**valval.Request** {
 
 ​    pub:
 
