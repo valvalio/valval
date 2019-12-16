@@ -190,14 +190,14 @@ valval.runserver(app, 80)
 
 ### Rendering Templates
 
-Valval used a whole new idea to implement the template functions, That's use [Vue](https://github.com/vuejs/vue).
+Valval used a whole new idea to implement the template functions, that's using [Vue](https://github.com/vuejs/vue).
 
 Has the following advantages:
 
-- I don't need to spend time developing built-in templates 😁.
 - You don't need to spend time learning how to use templates, if you have used `Vue` before.
 - If you haven't used `Vue`, you also can learn it fast, because it's so easy.
 - It can integrate some commonly used UI frameworks, such as: `element`, `mint`, `vant`, `antd`, `bootstrap`...
+- I don't need to spend time developing built-in templates 😁.
 
 A example for template:
 
