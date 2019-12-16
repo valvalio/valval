@@ -66,13 +66,12 @@ pub fn (res mut Response) set_header(key string, value string) {
 
 fn (res Response) header_text() string {
 	// res.header_text() => '// Content-Encoding: UTF-8\r\nContent-Length: 138'
-	mut lines := []string
+	mut text := ''
 	keys := res.headers.keys()
 	for key in keys {
 		value := res.headers[key]
-		lines << '$key: $value'
+		text += '$key: $value\r\n'
 	}
-	text := lines.join('\r\n')
 	return text
 }
 
@@ -304,7 +303,7 @@ pub fn (server Server) run() {
 		mut result := 'HTTP/1.1 $res.status ${res.status_msg()}\r\n'
 		result += 'Content-Type: $res.content_type\r\n'
 		result += 'Content-Length: $res.body.len\r\n'
-		result += '${res.header_text()}\r\n'
+		result += '${res.header_text()}'
 		result += '\r\n'
 		result += '$res.body'
 		if app.debug {
