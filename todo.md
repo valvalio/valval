@@ -1,8 +1,8 @@
 # todo
 
-- homepage / documention
-- publish to vpm
-- add to awesome-v
+- homepage / documention    ok
+- publish to vpm    ok
+- add to awesome-v  ok
 - test
 - comment
 
