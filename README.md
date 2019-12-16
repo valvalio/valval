@@ -318,8 +318,8 @@ fn bad(req valval.Request) valval.Response {
 
 ## Complete Example
 
-You can visit <https://github.com/taojy123/valval/tree/master/example> to see the complete example.
-
+- You can visit https://github.com/taojy123/valval/tree/master/example to see the complete example.
+- And the official website of valval (https://valval.cool) is also written by valval framework: https://github.com/taojy123/valval_website
 
 
 ## API Reference
