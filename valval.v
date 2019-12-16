@@ -53,10 +53,15 @@ pub fn (req Request) is_page() bool {
 
 
 pub struct Response {
+	pub mut:
 		status int = 200
 		body string = ''
 		content_type string = 'text/html; charset=utf-8'
 		headers map[string]string
+}
+
+pub fn (res mut Response) set_header(key string, value string) {
+	res.headers[key] = value
 }
 
 fn (res Response) header_text() string {
@@ -100,12 +105,30 @@ fn (res Response) status_msg() string {
 }
 
 
-struct Handler {
-		func fn(Request) Response
+pub struct View {
+		req Request
+		template string
+		ui string = 'element'
+	mut:
+		context map[string]string
+	pub:
+		content string  // html after template compiled
+}
+
+pub fn (view mut View) set(key string, data string) {
+	// data should be a json str of obj / str / int / bool / list ..
+	view.context[key.trim_space()] = data
+}
+
+fn (view View) get(key string) string {
+	if key in view.context {
+		return view.context[key]
+	}
+	return '{}'
 }
 
 
-struct App {
+pub struct App {
 	pub:
 		name string = 'ValvalApp'
 		debug bool = true
@@ -115,15 +138,23 @@ struct App {
 		static_map map[string]string
 }
 
-pub fn new_app(debug bool) App {
-	run_ts := time.now().uni
-	return App{debug: debug, run_ts: run_ts}
-}
-
 pub fn (app mut App) register(path string, func fn(Request) Response) {
 	// route path should not be ends with /
 	rpath := path.trim_right('/')
 	app.router[rpath] = Handler{func}
+}
+
+pub fn (app mut App) serve_static(static_prefix string, static_root string) {
+	// app.serve_static('/static/', './static/')
+	mut prefix := static_prefix
+	mut root := static_root
+	if !prefix.ends_with('/') {
+		prefix += '/'
+	}
+	if !root.ends_with('/') {
+		root += '/'
+	}
+	app.static_map[prefix] = root
 }
 
 fn (app App) handle(method string, path string, query_str string, body string, headers map[string]string) Response {
@@ -173,19 +204,6 @@ fn (app App) find_handler(req Request) Handler {
 	}
 	// last return default handler
 	return Handler{default_handler_func}
-}
-
-pub fn (app mut App) serve_static(static_prefix string, static_root string) {
-	// app.serve_static('/static/', './static/')
-	mut prefix := static_prefix
-	mut root := static_root
-	if !prefix.ends_with('/') {
-		prefix += '/'
-	}
-	if !root.ends_with('/') {
-		root += '/'
-	}
-	app.static_map[prefix] = root
 }
 
 
@@ -286,7 +304,7 @@ pub fn (server Server) run() {
 
 		mut result := 'HTTP/1.1 $res.status ${res.status_msg()}\r\n'
 		result += 'Content-Type: $res.content_type\r\n'
-		result += '${res.header_text()}'
+		result += '${res.header_text()}\r\n'
 		result += '\r\n'
 		result += '$res.body'
 		if app.debug {
@@ -310,14 +328,97 @@ pub fn (server Server) run() {
 }
 
 
-pub struct View {
-		req Request
-		template string
-		ui string = 'element'
-	mut:
-		context map[string]string
-	pub:
-		content string  // html after template compiled
+struct Handler {
+		func fn(Request) Response
+}
+
+
+// ===== functions ======
+
+fn split2(s string, flag string) (string, string) {
+	// split2('abc:def:xyz', ':') => 'abc', 'def:xyz'
+	// split2('abc', ':') => 'abc', ''
+	mut items := s.split(flag)
+	if items.len == 1 {
+		items << ''
+	}
+	// length of items must more than 2
+	return items[0], items[1..].join(flag)
+}
+
+fn default_handler_func(req Request) Response {
+	res := Response{
+		status: 404
+		body: '$req.path not found!'
+	}
+	return res
+}
+
+fn urldecode(query_str string) map[string]string {
+	mut query := map[string]string
+	mut s := query_str
+	s = s.replace('+', ' ')
+	items := s.split('&')
+	for item in items {
+		if item.len == 0 {
+			continue
+		}
+		key, value := split2(item.trim_space(), '=')
+		val := urllib.query_unescape(value) or {
+			continue
+		}
+		query[key] = val
+	}
+	return query
+}
+
+fn readall(conn net.Socket, debug bool) ?string {
+	mut message := ''
+	mut total_size := 0
+	for {
+		buf := [1024]byte
+		if debug {
+			println('recv..')
+		}
+		n := C.recv(conn.sockfd, buf, 1024, 2)
+		if debug {
+			println('n: $n')
+		}
+		if n == 0 {
+			break
+		}
+		bs, m := conn.recv(1024 - 1)
+		total_size += m
+		if debug {
+			println('m: $m, total: $total_size')
+		}
+		if total_size > POST_BODY_LIMIT {
+			return error('413')
+		}
+		ss := tos_clone(bs)
+		message += ss
+		if n == m {
+			break
+		}
+	}
+	return message
+}
+
+pub fn new_app(debug bool) App {
+	run_ts := time.now().uni
+	return App{debug: debug, run_ts: run_ts}
+}
+
+pub fn runserver(app App, port int) {
+	mut p := port
+	if port <= 0 || port > 65536 {
+		p = 8012
+	}
+	server := Server{
+		port: p
+		app: app
+	}
+	server.run()
 }
 
 pub fn new_view(req Request, template string, ui string) ?View{
@@ -417,102 +518,6 @@ pub fn new_view(req Request, template string, ui string) ?View{
 		content: content
 	}
 	return view
-}
-
-pub fn (view View) get(key string) string {
-	if key in view.context {
-		return view.context[key]
-	}
-	return '{}'
-}
-
-pub fn (view mut View) set(key string, data string) {
-	// data should be a json str of obj / str / int / bool / list ..
-	view.context[key.trim_space()] = data
-}
-
-
-// ===== functions ======
-
-fn split2(s string, flag string) (string, string) {
-	// split2('abc:def:xyz', ':') => 'abc', 'def:xyz'
-	// split2('abc', ':') => 'abc', ''
-	mut items := s.split(flag)
-	if items.len == 1 {
-		items << ''
-	}
-	// length of items must more than 2
-	return items[0], items[1..].join(flag)
-}
-
-fn default_handler_func(req Request) Response {
-	res := Response{
-		status: 404
-		body: '$req.path not found!'
-	}
-	return res
-}
-
-fn urldecode(query_str string) map[string]string {
-	mut query := map[string]string
-	mut s := query_str
-	s = s.replace('+', ' ')
-	items := s.split('&')
-	for item in items {
-		if item.len == 0 {
-			continue
-		}
-		key, value := split2(item.trim_space(), '=')
-		val := urllib.query_unescape(value) or {
-			continue
-		}
-		query[key] = val
-	}
-	return query
-}
-
-fn readall(conn net.Socket, debug bool) ?string {
-	mut message := ''
-	mut total_size := 0
-	for {
-		buf := [1024]byte
-		if debug {
-			println('recv..')
-		}
-		n := C.recv(conn.sockfd, buf, 1024, 2)
-		if debug {
-			println('n: $n')
-		}
-		if n == 0 {
-			break
-		}
-		bs, m := conn.recv(1024 - 1)
-		total_size += m
-		if debug {
-			println('m: $m, total: $total_size')
-		}
-		if total_size > POST_BODY_LIMIT {
-			return error('413')
-		}
-		ss := tos_clone(bs)
-		message += ss
-		if n == m {
-			break
-		}
-	}
-	return message
-}
-
-pub fn runserver(app App, port int) {
-	mut p := port
-	if port <= 0 || port > 65536 {
-		p = 8012
-	}
-	server := Server{
-		port: p
-		app: app
-	}
-	server.run()
 }
 
 pub fn response_ok(content string) Response {

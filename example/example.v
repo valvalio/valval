@@ -46,7 +46,8 @@ fn test2(req valval.Request) valval.Response {
 	}
 	name := req.get('name', 'jim')
 	content := '$method: name = $name'
-	res := valval.response_text(content)
+	mut res := valval.response_text(content)
+	res.set_header('x-test-key', 'test-value')
 	return res
 }
 
