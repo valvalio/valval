@@ -338,9 +338,6 @@ fn bad(req valval.Request) valval.Response {
 - valval.response_bad(msg string) Response
 - valval.response_view(view View) Response
 
-<br>
-<br>
-
 
 ### Structs
 
