@@ -338,6 +338,10 @@ fn bad(req valval.Request) valval.Response {
 - valval.response_bad(msg string) Response
 - valval.response_view(view View) Response
 
+<br>
+<br>
+
+
 ### Structs
 
 **valval.Request** {
@@ -365,6 +369,9 @@ fn bad(req valval.Request) valval.Response {
 - fn (req Request) is_page() bool
 
 
+<br>
+<br>
+
 
 **valval.Response** {
 
@@ -382,6 +389,9 @@ fn bad(req valval.Request) valval.Response {
 
 - fn (res mut Response) set_header(key string, value string)
 
+
+<br>
+<br>
 
 
 **valval.View** {
@@ -405,6 +415,9 @@ fn bad(req valval.Request) valval.Response {
 - fn (view mut View) set(key string, data string)
 
 
+<br>
+<br>
+
 
 **valval.App** {
 
@@ -427,7 +440,8 @@ fn bad(req valval.Request) valval.Response {
 - fn (app mut App) register(path string, func fn(Request) Response)
 - fn (app mut App) serve_static(static_prefix string, static_root string)
 
-
+<br>
+<br>
 
 **valval.Server** {
 
