@@ -117,8 +117,8 @@ app.register('/', hello)   		         // http://127.0.0.1
 app.register('/users', function1)        // http://127.0.0.1/users
 app.register('/user/info', function2)    // http://127.0.0.1/user/info
 
-app.register('DELETE:/book', function3)  // http://127.0.0.1/book by POST
-app.register('POST:/book', function4)    // http://127.0.0.1/book by DELETE
+app.register('POST:/book', function3)  // http://127.0.0.1/book by POST
+app.register('DELETE:/book', function4)    // http://127.0.0.1/book by DELETE
 app.register('/book', function5)         // http://127.0.0.1/book by other methods
 
 app.register('*', function6)   		     // all remain
@@ -222,19 +222,19 @@ fn users(req valval.Request) valval.Response {
 	mut view := valval.new_view(req, 'users.html', 'element') or {
 		return valval.response_bad(err)
 	}
-	
-    users := [
-        User{'Lucy', 13, false},
-        User{'Lily', 13, false},
-        User{'Jim', 12, true},
-    ]
-    msg := 'This is a page of three user'
-    
-    // use view.set to bind data for rendering template
-    // the second parameter must be a json string
-    view.set('users', json.encode(users))
-    view.set('msg', json.encode(msg))
-    
+
+	users := [
+		User{'Lucy', 13, false},
+		User{'Lily', 13, false},
+		User{'Jim', 12, true},
+	]
+	msg := 'This is a page of three user'
+
+	// use view.set to bind data for rendering template
+	// the second parameter must be a json string
+	view.set('users', json.encode(users))
+	view.set('msg', json.encode(msg))
+
 	return valval.response_view(view)
 }
 ```
