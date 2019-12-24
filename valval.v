@@ -313,7 +313,7 @@ pub fn (server Server) run() {
 		builder.write('\r\n')
 
 		result := builder.str()
-		conn.send(result.str, result.len) or {}
+		conn.send_string(result) or {}
 		if app.debug {
 			println('------ response headers ------')
 			if result.len > 500 {
@@ -324,7 +324,7 @@ pub fn (server Server) run() {
 		}
 		builder.free()
 		
-		conn.send(res.body.str, res.body.len) or {}
+		conn.send_string(res.body) or {}
 		if app.debug {
 			println('------- response body -----')
 			if res.body.len > 2000 {
