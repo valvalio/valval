@@ -7,10 +7,12 @@ import (
 	json
 	os
 	time
+	strings
 )
 
 const (
-	VERSION = '0.1.0'
+	VERSION = '0.1.1'
+	V_VERSION = '0.1.23'
 	HTTP_404 = 'HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\n404 Not Found'
 	HTTP_413 = 'HTTP/1.1 413 Request Entity Too Large\r\nContent-Type: text/plain\r\n\r\n413 Request Entity Too Large'
 	HTTP_500 = 'HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\n500 Internal Server Error'
@@ -65,7 +67,7 @@ pub fn (res mut Response) set_header(key string, value string) {
 }
 
 fn (res Response) header_text() string {
-	// res.header_text() => '// Content-Encoding: UTF-8\r\nContent-Length: 138'
+	// res.header_text() => '// Content-Encoding: UTF-8\r\nContent-Length: 138\r\n'
 	mut text := ''
 	keys := res.headers.keys()
 	for key in keys {
@@ -217,14 +219,15 @@ struct Server {
 pub fn (server Server) run() {
 	app := server.app
     println('${app.name} running on http://$server.address:$server.port ...')
-	println('working in: ${os.getwd()}')
-	println('OS: ${os.user_os()}, Debug: ${app.debug}')
-	println('Version: $VERSION')
+	println('Working in: ${os.getwd()}')
+	println('Server OS: ${os.user_os()}, Debug: ${app.debug}')
+	println('Version: $VERSION, support v version: $V_VERSION')
+	
     // listener := net.listen(server.port) or { panic('failed to listen') }
     for {
     	listener := net.listen(server.port) or { panic('failed to listen') }
 		conn := listener.accept() or { panic('accept failed') }
-		listener.close() or {} // todo: do not close listener and recreate everytime
+		listener.close() or {} // todo: do not close listener and recreate it everytime
 		if app.debug {
 			println('===============')
 			println(conn)
@@ -290,7 +293,7 @@ pub fn (server Server) run() {
 		}
 		body = body.trim_space()
 		if app.debug {
-			println('------------')
+			println('------ request headers ------')
 			println(headers)
 			if body.len > 2000 {
 				println(body[..2000] + ' ...')
@@ -300,24 +303,37 @@ pub fn (server Server) run() {
 		}
 		
 		res := app.handle(method, path, query, body, headers)
-		mut result := 'HTTP/1.1 $res.status ${res.status_msg()}\r\n'
-		result += 'Content-Type: $res.content_type\r\n'
-		result += 'Content-Length: $res.body.len\r\n'
-		result += '${res.header_text()}'
-		result += '\r\n'
-		result += '$res.body'
+
+		mut builder := strings.new_builder(1024)		
+		builder.write('HTTP/1.1 $res.status ${res.status_msg()}\r\n')
+		builder.write('Content-Type: $res.content_type\r\n')
+		builder.write('Content-Length: $res.body.len\r\n')
+		builder.write('Connection: close\r\n')
+		builder.write('${res.header_text()}')
+		builder.write('\r\n')
+
+		result := builder.str()
+		conn.send(result.str, result.len) or {}
 		if app.debug {
-			println('------------')
-			if result.len > 2000 {
-				println(result[..2000] + ' ...')
+			println('------ response headers ------')
+			if result.len > 500 {
+				println(result[..500] + ' ...')
 			} else {
 				println(result)
 			}
 		}
-
-        conn.write(result) or { 
-			conn.write(HTTP_500) or {}
+		builder.free()
+		
+		conn.send(res.body.str, res.body.len) or {}
+		if app.debug {
+			println('------- response body -----')
+			if res.body.len > 2000 {
+				println(res.body[..2000] + ' ...')
+			} else {
+				println(res.body)
+			}
 		}
+
 		conn.close() or {}
 
 		if app.debug {

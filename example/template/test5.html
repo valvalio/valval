@@ -1,33 +1,9 @@
 <html>
     <head>
-        <title>valval template power by vue</title>
+        <title>valval</title>
+        <script src="/static/demo.js"></script>
     </head>
-        <body>
-<!-- created by valval -->
-<div id="valapp">
-
-            <h1>{{ data.name }}</h1>
-            <h2>{{ data.age }}</h2>
-            <h3 v-if="data.sex">male</h3>
-            <h3 v-else>female</h3>
-
-</div>
-        <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/vue@2.6.0"></script>
-        <script>
-            vue = new Vue({
-                el: '#valapp',
-                data: function() {
-                    return { 
-                        data: {
-                            name: 'Lucy',
-                            age: 13,
-                            sex: false,
-                        }
-                    }
-                }
-            })
-        </script>
+    <body>
+        <h1>Hello world</h1>
     </body>
-    
 </html>
