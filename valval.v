@@ -420,7 +420,7 @@ fn readall(conn net.Socket, debug bool) ?string {
 }
 
 pub fn new_app(debug bool) App {
-	run_ts := time.now().uni
+	run_ts := time.now().unix
 	return App{debug: debug, run_ts: run_ts}
 }
 
