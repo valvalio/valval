@@ -68,11 +68,8 @@ $ v install valval
 ***Note***: If you use vpm; you'll have to change the import to:
 ```
 	import watchman123456.valval
-	
-	// although I'd recommend 
-	import watchman123456.valval as vv, valval (if you do this, you won't need to change examples to run them), valv, etc...
 ```
-
+ As well as the usage to `watchman123456.valval`
 ## Quickstart
 
 ### A Minimal Application
