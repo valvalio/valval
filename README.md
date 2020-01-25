@@ -2,7 +2,7 @@
 
 Valval is the fastest web framework in V language. 
 
-It means you can develop a website fast and run it fast!
+This means you can __develop__ a website ___quickly___ and __run__ it ___even faster___!
 
 ##### A simple demo:
 
@@ -37,19 +37,41 @@ $ brew install openssl
 
 Debian/Ubuntu:
 $ sudo apt install libssl-dev openssl ca-certificates
+
+Windows (Win10 Verified):
+Source can be downloaded from: 
+* https://www.openssl.org/source/
+* https://github.com/openssl/
+
+You can find an installer at [Graphic installer](https://slproweb.com/products/Win32OpenSSL.html "32 and 64 bit available")
 ```
 
-Or use V in docker, it's include OpenSSL
+Or use V in docker, it includes OpenSSL
 ```
 docker run -it -p 8012:8012 --name vlang taojy123/vlang bash
 ```
 
 ### Install Valval
+#### Using Git
 ```
 $ git clone https://github.com/toajy123/valval
 $ ln -s $(pwd)/valval ~/.vmodules/valval 
 ```
 
+#### Using VPM
+Watchman123456 has registered the module w/ vpm. 
+Simply use the following if you have v on your PATH variable:
+``` bash
+$ v install valval
+```
+
+***Note***: If you use vpm; you'll have to change the import to:
+```
+	import watchman123456.valval
+	
+	// although I'd recommend 
+	import watchman123456.valval as vv, valval (if you do this, you won't need to change examples to run them), valv, etc...
+```
 
 ## Quickstart
 
@@ -165,8 +187,7 @@ fn hello(req valval.Request) valval.Response {
 app.register('/hello', hello)
 ```
 
-More type of request data will support in the future:
-
+More types of request data will be supported in the future:
 - parameters in url
 - `multipart/form-data` by POST request
 - `application/json` by POST request
@@ -190,16 +211,16 @@ valval.runserver(app, 80)
 
 ### Rendering Templates
 
-Valval used a whole new idea to implement the template functions, that's using [Vue](https://github.com/vuejs/vue).
+Valval used a whole new idea to implement the template function; inspired by [Vue's](https://github.com/vuejs/vue) system.
 
 Has the following advantages:
 
 - You don't need to spend time learning how to use templates, if you have used `Vue` before.
-- If you haven't used `Vue`, you also can learn it fast, because it's so easy.
+- If you haven't used `Vue`, you also can [learn](https://vuejs.org/v2/guide/syntax.html) it fast, because it's so easy.
 - It can integrate some commonly used UI frameworks, such as: `element`, `mint`, `vant`, `antd`, `bootstrap`...
 - I don't need to spend time developing built-in templates 😁.
 
-A example for template:
+An example for template:
 
 `server.v`:
 
@@ -277,7 +298,7 @@ fn test1(req valval.Request) valval.Response {
 
 In addition to the responses mentioned above (`response_ok`,  `response_view`, `response_redirect`)
 
-Valval also provides more other types of responses, as follows:
+Valval also provides other response types, as follows:
 
 ```v
 struct User {
@@ -319,7 +340,7 @@ fn bad(req valval.Request) valval.Response {
 ## Complete Example
 
 - You can visit https://github.com/taojy123/valval/tree/master/example to see the complete example.
-- And the official website of valval (https://valval.cool) is also written by valval framework: https://github.com/taojy123/valval_website
+- And the official website of valval (https://valval.cool) is also written with the valval framework: https://github.com/taojy123/valval_website
 
 
 ## API Reference
