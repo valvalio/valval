@@ -38,13 +38,14 @@ $ brew install openssl
 Debian/Ubuntu:
 $ sudo apt install libssl-dev openssl ca-certificates
 
+
+```
 Windows (Win10 Verified):
 Source can be downloaded from: 
 * https://www.openssl.org/source/
 * https://github.com/openssl/
 
-You can find an installer at [Graphic installer](https://slproweb.com/products/Win32OpenSSL.html "32 and 64 bit available")
-```
+You can find a [Graphic installer](https://slproweb.com/products/Win32OpenSSL.html "32 and 64 bit available") if that's more to you're liking.
 
 Or use V in docker, it includes OpenSSL
 ```
@@ -67,7 +68,7 @@ $ v install valval
 
 ***Note***: If you use vpm; you'll have to change the import to:
 ```
-	import watchman123456.valval
+import watchman123456.valval
 ```
  As well as the usage to `watchman123456.valval`
 ## Quickstart
