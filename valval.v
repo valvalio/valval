@@ -8,6 +8,7 @@ import (
 	os
 	time
 	strings
+	filepath
 )
 
 const (
@@ -420,7 +421,7 @@ fn readall(conn net.Socket, debug bool) ?string {
 }
 
 pub fn new_app(debug bool) App {
-	run_ts := time.now().uni
+	run_ts := time.now().unix
 	return App{debug: debug, run_ts: run_ts}
 }
 
@@ -580,7 +581,7 @@ pub fn response_file(path string) Response {
 		println(err)
 		return response_bad('$path read_file failed')
 	}
-	ext := os.ext(path)
+	ext := filepath.ext(path)
 	mime_map := {
 		'.css': 'text/css; charset=utf-8',
 		'.gif': 'image/gif',
