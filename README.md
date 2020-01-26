@@ -37,8 +37,6 @@ $ brew install openssl
 
 Debian/Ubuntu:
 $ sudo apt install libssl-dev openssl ca-certificates
-
-
 ```
 Windows (Win10 Verified):
 Source can be downloaded from: 
@@ -55,12 +53,12 @@ docker run -it -p 8012:8012 --name vlang taojy123/vlang bash
 ### Install Valval
 #### Using Git
 ```
-$ git clone https://github.com/toajy123/valval
+$ git clone https://github.com/taojy123/valval
 $ ln -s $(pwd)/valval ~/.vmodules/valval 
 ```
 
 #### Using VPM
-Watchman123456 has registered the module w/ vpm. 
+Watchman123456 has registered the module with vpm. 
 Simply use the following if you have v on your PATH variable:
 ``` bash
 $ v install valval
