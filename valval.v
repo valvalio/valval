@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	VERSION = '0.1.1'
-	V_VERSION = '0.1.23'
+	VERSION = '0.1.2'
+	V_VERSION = '0.1.24'
 	HTTP_404 = 'HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\n404 Not Found'
 	HTTP_413 = 'HTTP/1.1 413 Request Entity Too Large\r\nContent-Type: text/plain\r\n\r\n413 Request Entity Too Large'
 	HTTP_500 = 'HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\n500 Internal Server Error'
