@@ -81,8 +81,9 @@ fn test5(req valval.Request) valval.Response {
 }
 
 fn test6(req valval.Request) valval.Response {
-	mut view := valval.new_view(req, 'template/test6.html', 'element') or {
-		return valval.response_bad(err)
+	mut view := valval.new_view(req, 'template/test6.html', 'element')
+	if view.error != '' {
+		return valval.response_bad(view.error)
 	}
 	if req.is_page() {
 		println('a user is viewing the test6 page')

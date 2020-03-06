@@ -13,7 +13,7 @@ import (
 
 const (
 	VERSION = '0.1.2'
-	V_VERSION = '0.1.24'
+	V_VERSION = '0.1.25'
 	HTTP_404 = 'HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\n404 Not Found'
 	HTTP_413 = 'HTTP/1.1 413 Request Entity Too Large\r\nContent-Type: text/plain\r\n\r\n413 Request Entity Too Large'
 	HTTP_500 = 'HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\n500 Internal Server Error'
@@ -115,6 +115,7 @@ pub struct View {
 		context map[string]string
 	pub:
 		content string  // html after template compiled
+		error string  // because of https://github.com/vlang/v/issues/1709, new_view function could return option, so put it here.
 }
 
 pub fn (view mut View) set(key string, data string) {
@@ -222,7 +223,7 @@ pub fn (server Server) run() {
     println('${app.name} running on http://$server.address:$server.port ...')
 	println('Working in: ${os.getwd()}')
 	println('Server OS: ${os.user_os()}, Debug: ${app.debug}')
-	println('Version: $VERSION, support v version: $V_VERSION')
+	println('Valval version: $VERSION, support V version: $V_VERSION')
 	
     // listener := net.listen(server.port) or { panic('failed to listen') }
     for {
@@ -437,18 +438,18 @@ pub fn runserver(app App, port int) {
 	server.run()
 }
 
-pub fn new_view(req Request, template string, ui string) ?View{
+pub fn new_view(req Request, template string, ui string) View{
 	if !(ui in ['element', 'mint', 'vant', 'antd', 'bootstrap', '', 'none']) {
-		return error('ui just support `element, mint, vant, antd, bootstrap, none` now')
+		return View{error: 'ui just support `element, mint, vant, antd, bootstrap, none` now'}
 	}
 	if req.method != 'GET' {
-		return error('view template only support GET method')
+		return View{error: 'view template only support GET method'}
 	}
 	if !template.ends_with('.html') {
-		return error('template must be a .html file')
+		return View{error: 'template must be a .html file'}
 	}
 	if !os.exists(template) {
-		return error('$template template not found')
+		return View{error: '$template template not found'}
 	}
 
 	mut content := ''
@@ -460,7 +461,7 @@ pub fn new_view(req Request, template string, ui string) ?View{
 		if ts2 > ts1 && ts2 > ts0 {
 			// use the cache file if available
 			file_content := os.read_file(template2) or {
-				return error(err)
+				return View{error: err}
 			}
 			content = file_content
 		}
@@ -469,7 +470,7 @@ pub fn new_view(req Request, template string, ui string) ?View{
 	if content == '' {
 		// compile the template
 		file_content := os.read_file(template) or {
-			return error(err)
+			return View{error: err}
 		}
 		content = file_content
 
