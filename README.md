@@ -23,41 +23,13 @@ fn main() {
 
 ## Installation
 
-### Install V language
-```
-$ git clone https://github.com/vlang/v
-$ cd v
-$ make
-```
-
-Install OpenSSL
-```
-macOS:
-$ brew install openssl
-
-Debian/Ubuntu:
-$ sudo apt install libssl-dev openssl ca-certificates
-```
-Windows (Win10 Verified):
-Source can be downloaded from: 
-* https://www.openssl.org/source/
-* https://github.com/openssl/
-
-You can find a [Graphic installer](https://slproweb.com/products/Win32OpenSSL.html "32 and 64 bit available") if that's more to you're liking.
-
-Or use V in docker, it includes OpenSSL
-```
-docker run -it -p 8012:8012 --name vlang taojy123/vlang bash
-```
-
-### Install Valval
-#### Using Git
+### Using Git
 ```
 $ git clone https://github.com/taojy123/valval
 $ ln -s $(pwd)/valval ~/.vmodules/valval 
 ```
 
-#### Using VPM
+### Using VPM
 Watchman123456 has registered the module with vpm. 
 Simply use the following if you have v on your PATH variable:
 ``` bash
@@ -68,7 +40,7 @@ $ v install watchman123456.valval
 ```
 import watchman123456.valval
 ```
- As well as the usage to `watchman123456.valval`
+
 ## Quickstart
 
 ### A Minimal Application
@@ -472,5 +444,43 @@ fn bad(req valval.Request) valval.Response {
 }
 
 - fn (server Server) run()
+
+
+
+## Some Way to Install V Language
+
+### 1. Download a prebuilt V package
+
+Visit official home page https://vlang.io/ to download
+
+
+### 2. Run V in docker [recommand]
+
+```
+docker run -it -p 8012:8012 --name vlang taojy123/vlang bash
+```
+It includes OpenSSL
+
+### 3. Install V from source
+```
+$ git clone https://github.com/vlang/v
+$ cd v
+$ make
+```
+
+Install OpenSSL
+```
+macOS:
+$ brew install openssl
+
+Debian/Ubuntu:
+$ sudo apt install libssl-dev openssl ca-certificates
+```
+Windows (Win10 Verified):
+Source can be downloaded from: 
+* https://www.openssl.org/source/
+* https://github.com/openssl/
+
+You can find a [Graphic installer](https://slproweb.com/products/Win32OpenSSL.html "32 and 64 bit available") if that's more to you're liking.
 
 
