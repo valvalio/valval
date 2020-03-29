@@ -15,7 +15,7 @@ fn hello(req valval.Request) valval.Response {
 
 fn main() {
 	mut app := valval.new_app(true)
-	app.register('/', hello)
+	app.route('/', hello)
 	valval.runserver(app, 8012)
 }
 ```
@@ -59,7 +59,7 @@ fn hello(req valval.Request) valval.Response {
 
 fn main() {
 	mut app := valval.new_app(true)
-	app.register('/', hello)
+	app.route('/', hello)
 	valval.runserver(app, 8012)
 }
 ```
@@ -95,23 +95,23 @@ The valval server will bind `0.0.0.0` address, so you can visit the website by `
 
 ### Routing
 
-Use the `App.register()` function to band a handler function to request path
+Use the `App.route()` function to band a handler function to request path
 
 The handler function should have a parameter of type `Request` and return a `Response`
 
 ```v
 mut app := valval.new_app(true)
 
-app.register('/', hello)   		         // http://127.0.0.1
+app.route('/', hello)   		         // http://127.0.0.1
 
-app.register('/users', function1)        // http://127.0.0.1/users
-app.register('/user/info', function2)    // http://127.0.0.1/user/info
+app.route('/users', function1)        // http://127.0.0.1/users
+app.route('/user/info', function2)    // http://127.0.0.1/user/info
 
-app.register('POST:/book', function3)  // http://127.0.0.1/book by POST
-app.register('DELETE:/book', function4)    // http://127.0.0.1/book by DELETE
-app.register('/book', function5)         // http://127.0.0.1/book by other methods
+app.route('POST:/book', function3)  // http://127.0.0.1/book by POST
+app.route('DELETE:/book', function4)    // http://127.0.0.1/book by DELETE
+app.route('/book', function5)         // http://127.0.0.1/book by other methods
 
-app.register('*', function6)   		     // all remain
+app.route('*', function6)   		     // all remain
 
 valval.runserver(app, 80)
 ```
@@ -140,8 +140,8 @@ fn post_hello(req valval.Request) valval.Response {
 	return valval.response_ok('hello $name')
 }
 
-app.register('GET:/hello', hello)
-app.register('POST:/hello', post_hello)
+app.route('GET:/hello', hello)
+app.route('POST:/hello', post_hello)
 ```
 
 `valval.Request.get()` provides a quick way to get data whether it is from `query` or `form`. 
@@ -152,7 +152,7 @@ fn hello(req valval.Request) valval.Response {
 	return valval.response_ok('hello $name')
 }
 
-app.register('/hello', hello)
+app.route('/hello', hello)
 ```
 
 More types of request data will be supported in the future:

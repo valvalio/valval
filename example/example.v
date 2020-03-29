@@ -110,17 +110,17 @@ fn main() {
 
 	app.serve_static('/static/', './static/')
 
-	app.register('/', index)  // as same as: ('', index)
-	app.register('/hello/world', hello)
-	app.register('/test1', test1)
-	app.register('/test2', test2)
-	app.register('/test3', test3)
-	app.register('/test4', test4)
-	app.register('POST:/test4', post_test4)
-	app.register('/test5', test5)
-	app.register('/test6', test6)
+	app.route('/', index)  // as same as: ('', index)
+	app.route('/hello/world', hello)
+	app.route('/test1', test1)
+	app.route('/test2', test2)
+	app.route('/test3', test3)
+	app.route('/test4', test4)
+	app.route('POST:/test4', post_test4)
+	app.route('/test5', test5)
+	app.route('/test6', test6)
 	
-	// app.register('*', index)
+	// app.route('*', index)
 
 	valval.runserver(app, 8012)
 

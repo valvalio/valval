@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	VERSION = '0.1.3'
+	VERSION = '0.1.4'
 	V_VERSION = '0.1.25'
 	HTTP_404 = 'HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\n404 Not Found'
 	HTTP_413 = 'HTTP/1.1 413 Request Entity Too Large\r\nContent-Type: text/plain\r\n\r\n413 Request Entity Too Large'
@@ -140,10 +140,15 @@ pub struct App {
 		static_map map[string]string
 }
 
-pub fn (app mut App) register(path string, func fn(Request) Response) {
+pub fn (app mut App) route(path string, func fn(Request) Response) {
 	// route path should not be ends with /
 	rpath := path.trim_right('/')
 	app.router[rpath] = Handler{func}
+}
+
+pub fn (app mut App) register(path string, func fn(Request) Response) {
+	// as same as route
+	app.route(path, func)
 }
 
 pub fn (app mut App) serve_static(static_prefix string, static_root string) {
