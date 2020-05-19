@@ -193,10 +193,8 @@ An example for template:
 `server.v`:
 
 ```v
-import (
-	valval
-	json
-)
+import valval
+import json
 
 struct User {
 	name string

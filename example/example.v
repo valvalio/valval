@@ -6,10 +6,8 @@ module main
 // 
 // curl http://127.0.0.1:8012
 
-import (
-	valval
-	json
-)
+import valval
+import json
 
 
 struct User {
