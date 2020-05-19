@@ -1,14 +1,13 @@
 
 module valval
 
-import (
-	net
-	net.urllib
-	json
-	os
-	time
-	strings
-)
+import net
+import net.urllib
+import json
+import os
+import time
+import strings
+
 
 const (
 	VERSION = '0.1.4'
