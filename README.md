@@ -26,6 +26,7 @@ fn main() {
 ### Using Git
 ```
 $ git clone https://github.com/taojy123/valval
+$ mkdir -p ~/.vmodules
 $ ln -s $(pwd)/valval ~/.vmodules/valval 
 ```
 
