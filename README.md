@@ -310,7 +310,11 @@ fn bad(req valval.Request) valval.Response {
 
 
 
-## Some Way to Install V Language
+## The Way to Install V Language
+
+Valval framework currently supports the V language version is 0.1.24
+
+Here are some ways to install V:
 
 ### 1. Download a prebuilt V package
 
