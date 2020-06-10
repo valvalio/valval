@@ -133,7 +133,7 @@ pub struct App {
 	pub:
 		name string = 'ValvalApp'
 		debug bool = true
-		run_ts int = 0
+		run_ts u64 = 0
 	mut:
 		router map[string]Handler
 		static_map map[string]string
@@ -197,11 +197,11 @@ fn (app App) find_handler(req Request) Handler {
 	path := req.path.trim_right('/')
 	method_path := '${req.method}:$path'
 	// first match `method:path`
-	if (method_path in router) {
+	if method_path in router {
 		return router[method_path]
 	}
 	// then math path
-	if (path in router) {
+	if path in router {
 		return router[path]
 	}
 	// then use common handler if it exists
@@ -585,7 +585,7 @@ pub fn response_file(path string) Response {
 		println(err)
 		return response_bad('$path read_file failed')
 	}
-	ext := os.ext(path)
+	ext := os.file_ext(path)
 	mime_map := {
 		'.css': 'text/css; charset=utf-8',
 		'.gif': 'image/gif',
