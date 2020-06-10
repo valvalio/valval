@@ -10,8 +10,8 @@ import strings
 
 
 const (
-	VERSION = '0.1.4'
-	V_VERSION = '0.1.24'
+	VERSION = '0.1.5'
+	V_VERSION = '0.1.27'
 	HTTP_404 = 'HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\n404 Not Found'
 	HTTP_413 = 'HTTP/1.1 413 Request Entity Too Large\r\nContent-Type: text/plain\r\n\r\n413 Request Entity Too Large'
 	HTTP_500 = 'HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\n500 Internal Server Error'
@@ -61,7 +61,7 @@ pub struct Response {
 		headers map[string]string
 }
 
-pub fn (res mut Response) set_header(key string, value string) {
+pub fn (mut res Response) set_header(key string, value string) {
 	res.headers[key] = value
 }
 
@@ -116,7 +116,7 @@ pub struct View {
 		error string  // because of https://github.com/vlang/v/issues/1709, new_view function could return option, so put it here.
 }
 
-pub fn (view mut View) set(key string, data string) {
+pub fn (mut view View) set(key string, data string) {
 	// data should be a json str of obj / str / int / bool / list ..
 	view.context[key.trim_space()] = data
 }
@@ -139,18 +139,18 @@ pub struct App {
 		static_map map[string]string
 }
 
-pub fn (app mut App) route(path string, func fn(Request) Response) {
+pub fn (mut app App) route(path string, func fn(Request) Response) {
 	// route path should not be ends with /
 	rpath := path.trim_right('/')
 	app.router[rpath] = Handler{func}
 }
 
-pub fn (app mut App) register(path string, func fn(Request) Response) {
+pub fn (mut app App) register(path string, func fn(Request) Response) {
 	// as same as route
 	app.route(path, func)
 }
 
-pub fn (app mut App) serve_static(static_prefix string, static_root string) {
+pub fn (mut app App) serve_static(static_prefix string, static_root string) {
 	// app.serve_static('/static/', './static/')
 	mut prefix := static_prefix
 	mut root := static_root
