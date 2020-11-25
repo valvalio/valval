@@ -10,13 +10,13 @@ import strings
 
 
 const (
-	VERSION = '0.1.4'
-	V_VERSION = '0.1.24'
-	HTTP_404 = 'HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\n404 Not Found'
-	HTTP_413 = 'HTTP/1.1 413 Request Entity Too Large\r\nContent-Type: text/plain\r\n\r\n413 Request Entity Too Large'
-	HTTP_500 = 'HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\n500 Internal Server Error'
-	POST_BODY_LIMIT = 1024 * 1024 * 20  // 20MB
-	API_KEY_FLAG = 'valvalapikey'  		// the param name won't be used anywhere else
+	version = '0.1.4'
+	v_version = '0.1.24'
+	http_404 = 'HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\n404 Not Found'
+	http_413 = 'HTTP/1.1 413 Request Entity Too Large\r\nContent-Type: text/plain\r\n\r\n413 Request Entity Too Large'
+	http_500 = 'HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\n500 Internal Server Error'
+	post_body_limit = 1024 * 1024 * 20  // 20MB
+	api_key_flag = 'valvalapikey'  		// the param name won't be used anywhere else
 )
 
 // ===== structs ======
@@ -44,7 +44,7 @@ pub fn (req Request) get(key string, default_value string) string {
 
 pub fn (req Request) is_api() bool {
 	// api request by axios
-	return API_KEY_FLAG in req.query
+	return api_key_flag in req.query
 }
 
 pub fn (req Request) is_page() bool {
@@ -54,14 +54,14 @@ pub fn (req Request) is_page() bool {
 
 
 pub struct Response {
-	pub mut:
+	mut pub:
 		status int = 200
 		body string = ''
 		content_type string = 'text/html; charset=utf-8'
 		headers map[string]string
 }
 
-pub fn (res mut Response) set_header(key string, value string) {
+pub fn (mut res Response) set_header(key string, value string) {
 	res.headers[key] = value
 }
 
@@ -116,7 +116,7 @@ pub struct View {
 		error string  // because of https://github.com/vlang/v/issues/1709, new_view function could return option, so put it here.
 }
 
-pub fn (view mut View) set(key string, data string) {
+pub fn (mut view View) set(key string, data string) {
 	// data should be a json str of obj / str / int / bool / list ..
 	view.context[key.trim_space()] = data
 }
@@ -139,18 +139,18 @@ pub struct App {
 		static_map map[string]string
 }
 
-pub fn (app mut App) route(path string, func fn(Request) Response) {
+pub fn (mut app App) route(path string, func fn(Request) Response) {
 	// route path should not be ends with /
 	rpath := path.trim_right('/')
 	app.router[rpath] = Handler{func}
 }
 
-pub fn (app mut App) register(path string, func fn(Request) Response) {
+pub fn (mut app App) register(path string, func fn(Request) Response) {
 	// as same as route
 	app.route(path, func)
 }
 
-pub fn (app mut App) serve_static(static_prefix string, static_root string) {
+pub fn (mut app App) serve_static(static_prefix string, static_root string) {
 	// app.serve_static('/static/', './static/')
 	mut prefix := static_prefix
 	mut root := static_root
@@ -226,11 +226,11 @@ pub fn (server Server) run() {
     println('${app.name} running on http://$server.address:$server.port ...')
 	println('Working in: ${os.getwd()}')
 	println('Server OS: ${os.user_os()}, Debug: ${app.debug}')
-	println('Valval version: $VERSION, support V version: $V_VERSION')
-	
+	println('Valval version: $version, support V version: $v_version')
+
     // listener := net.listen(server.port) or { panic('failed to listen') }
     for {
-    	listener := net.listen(server.port) or { panic('failed to listen') }
+		listener := net.listen(server.port) or { panic('failed to listen') }
 		conn := listener.accept() or { panic('accept failed') }
 		listener.close() or {} // todo: do not close listener and recreate it everytime
 		if app.debug {
@@ -240,9 +240,9 @@ pub fn (server Server) run() {
 		message := readall(conn, app.debug) or {
 			println(err)
 			if err == '413' {
-				conn.write(HTTP_413) or {}
+				conn.write(http_413) or {}
 			} else {
-				conn.write(HTTP_500) or {}
+				conn.write(http_500) or {}
 			}
 			conn.close() or {}
 			continue
@@ -254,7 +254,7 @@ pub fn (server Server) run() {
 		lines := message.split_into_lines()
 		if lines.len < 2 {
 			println('invalid message for http')
-			conn.write(HTTP_500) or {}
+			conn.write(http_500) or {}
 			conn.close() or {}
 			continue
 		}
@@ -262,7 +262,7 @@ pub fn (server Server) run() {
 		items := first_line.split(' ')
 		if items.len < 2 {
 			println('invalid data for http')
-			conn.write(HTTP_500) or {}
+			conn.write(http_500) or {}
 			conn.close() or {}
 			continue
 		}
@@ -306,10 +306,10 @@ pub fn (server Server) run() {
 				println(body)
 			}
 		}
-		
+
 		res := app.handle(method, path, query, body, headers)
 
-		mut builder := strings.new_builder(1024)		
+		mut builder := strings.new_builder(1024)
 		builder.write('HTTP/1.1 $res.status ${res.status_msg()}\r\n')
 		builder.write('Content-Type: $res.content_type\r\n')
 		builder.write('Content-Length: $res.body.len\r\n')
@@ -328,7 +328,7 @@ pub fn (server Server) run() {
 			}
 		}
 		builder.free()
-		
+
 		conn.send_string(res.body) or {}
 		if app.debug {
 			println('------- response body -----')
@@ -412,7 +412,7 @@ fn readall(conn net.Socket, debug bool) ?string {
 		if debug {
 			println('m: $m, total: $total_size')
 		}
-		if total_size > POST_BODY_LIMIT {
+		if total_size > post_body_limit {
 			return error('413')
 		}
 		ss := tos_clone(bs)
@@ -519,7 +519,7 @@ pub fn new_view(req Request, template string, ui string) View{
 		bottom += '        methods: {\n'
 		bottom += '            fetch: function(n) {\n'
 		bottom += '                var n = n || 0\n'
-		bottom += '                axios.get(location.href, {params: {$API_KEY_FLAG: "1"} })\n'
+		bottom += '                axios.get(location.href, {params: {$api_key_flag: "1"} })\n'
 		bottom += '                .then(function (res) { for(key of Object.keys(res.data)){vue[key] = res.data[key]}; vue.loading = false })\n'
 		bottom += '                .catch(function (err) { setTimeout(function(){ if(n<5){vue.fetch(n+1)}else{vue.fail=true} }, Math.random() * 1000 ) })\n'
 		bottom += '            },\n'
