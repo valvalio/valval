@@ -1,4 +1,3 @@
-
 module valval
 
 import net
@@ -237,7 +236,7 @@ pub fn (server Server) run() {
 			println('===============')
 			println(conn)
 		}
-		message := readall(conn, app.debug) or {
+		message := readall(conn.sock, app.debug) or {
 			println(err)
 			if err == '413' {
 				ret := []byte{len:(http_413.len)}
@@ -396,7 +395,7 @@ fn urldecode(query_str string) map[string]string {
 	return query
 }
 
-fn readall(conn net.Socket, debug bool) ?string {
+fn readall(conn net.TcpSocket, debug bool) ?string {
 	mut message := ''
 	mut total_size := 0
 	for {
@@ -404,7 +403,7 @@ fn readall(conn net.Socket, debug bool) ?string {
 		if debug {
 			println('recv..')
 		}
-		n := C.recv(conn.sockfd, buf, 1024, 2)
+		n := conn.read(buf)
 		if debug {
 			println('n: $n')
 		}
